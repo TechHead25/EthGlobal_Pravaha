@@ -155,6 +155,15 @@ async function main() {
 if (require.main === module) {
   main().catch((err) => {
     console.error("\n[Token Verification Failed]:", err.message);
+    if (
+      err.message?.includes("Connect Timeout") ||
+      err.message?.includes("timeout") ||
+      err.code === "UND_ERR_CONNECT_TIMEOUT"
+    ) {
+      console.error("\n[Troubleshooting Connect Timeout]:");
+      console.error("  Try switching to the alternative fast Arc Testnet RPC by setting in your .env:");
+      console.error('  ARC_TESTNET_RPC_URL="https://arc-testnet.drpc.org"');
+    }
     process.exit(1);
   });
 }

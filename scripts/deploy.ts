@@ -315,6 +315,17 @@ export async function main() {
 if (require.main === module) {
   main().catch((error) => {
     console.error("\n[DEPLOYMENT FAILED]:", error.message);
+    if (
+      error.message?.includes("Connect Timeout") ||
+      error.message?.includes("timeout") ||
+      error.code === "UND_ERR_CONNECT_TIMEOUT"
+    ) {
+      console.error("\n[Troubleshooting Connect Timeout]:");
+      console.error("  1. The RPC endpoint timed out while establishing a connection.");
+      console.error("  2. Try switching to the alternative fast Arc Testnet RPC by setting in your .env:");
+      console.error('     ARC_TESTNET_RPC_URL="https://arc-testnet.drpc.org"');
+      console.error("  3. Ensure your network allows outbound HTTPS connections to port 443.");
+    }
     process.exitCode = 1;
   });
 }

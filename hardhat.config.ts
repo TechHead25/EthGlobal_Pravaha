@@ -31,6 +31,7 @@ const config: HardhatUserConfig = {
       url: process.env.ARC_TESTNET_RPC_URL || "https://rpc.testnet.arc.network",
       chainId: 5042002,
       accounts: arcAccounts,
+      timeout: 120000,
     },
   },
   paths: {
