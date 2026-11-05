@@ -9,6 +9,7 @@ coverage.json
 .nyc_output/
 typechain/
 typechain-types/
+*.tsbuildinfo
 
 # Hardhat build artifacts and cache
 artifacts/
@@ -22,12 +23,14 @@ dist/
 
 # Environment and secrets
 .env
+.env.*
 .env*.local
 .env.production
 .env.staging
 *.pem
 *.key
 mnemonic.txt
+deployments/*-secrets.json
 
 # Hardhat local node and test logs
 hardhat.log
