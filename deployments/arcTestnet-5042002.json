@@ -1,0 +1,31 @@
+{
+  "network": "arcTestnet",
+  "chainId": "5042002",
+  "timestamp": "2026-11-05T20:43:47.208Z",
+  "deployer": "0xFCAd0B19bB29D4674531d6f115237E16AfCE377c",
+  "usdcToken": {
+    "address": "0x3600000000000000000000000000000000000000",
+    "isMock": false,
+    "verification": {
+      "address": "0x3600000000000000000000000000000000000000",
+      "name": "USDC",
+      "symbol": "USDC",
+      "decimals": 6,
+      "totalSupply": "309144886273087856",
+      "deployerBalance": "20000538",
+      "hasBytecode": true
+    }
+  },
+  "validators": [
+    "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+    "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+    "0x90F79bf6EB2c4f870365E785982E1f101E93b906",
+    "0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65",
+    "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc"
+  ],
+  "openAidEscrow": {
+    "address": "0xe38151283e55077F621988679f2Cc524b785d236",
+    "transactionHash": "0xd4748a53c1eedce5bc86293d3d5a570764fae0996d0eb2b906c0ea13d54e7b21",
+    "blockNumber": 70917303
+  }
+}

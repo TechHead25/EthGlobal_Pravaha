@@ -82,9 +82,9 @@ export default function OpenAidApp() {
   const [txLogs, setTxLogs] = useState<Array<{ id: string; txHash: string; msg: string; time: string; type: "success" | "warn" | "error" }>>([
     {
       id: "init",
-      txHash: "0x7a3f...e109",
-      msg: "Campaign #1 deployed on Arc Testbed (Zero-Custody Escrow initialized)",
-      time: "Just now",
+      txHash: "0xd4748a53c1eedce5bc86293d3d5a570764fae0996d0eb2b906c0ea13d54e7b21",
+      msg: "OpenAidEscrow deployed to Arc Testnet at 0xe38151283e55077F621988679f2Cc524b785d236 (Block #70917303)",
+      time: "Confirmed",
       type: "success",
     },
   ]);
@@ -441,9 +441,31 @@ export default function OpenAidApp() {
           </button>
         </div>
 
-        <div className="flex items-center gap-3 px-3 py-1 bg-gray-900 border border-gray-800 rounded-lg text-xs font-mono text-gray-300">
-          <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Connected: 0x7099...79C8 (Local Arc Hardhat Node)</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <a
+            href="https://testnet.arcscan.app/address/0xe38151283e55077F621988679f2Cc524b785d236"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1 bg-blue-950/70 border border-blue-800/80 rounded-lg text-xs font-mono text-blue-300 hover:bg-blue-900/80 hover:text-blue-100 transition"
+            title="View verified OpenAidEscrow contract on ArcScan"
+          >
+            <span>Escrow: 0xe381...d236</span>
+            <ExternalLink className="w-3 h-3 text-blue-400" />
+          </a>
+          <a
+            href="https://testnet.arcscan.app/address/0x3600000000000000000000000000000000000000"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1 bg-emerald-950/70 border border-emerald-800/80 rounded-lg text-xs font-mono text-emerald-300 hover:bg-emerald-900/80 hover:text-emerald-100 transition"
+            title="View Arc Official Testnet USDC"
+          >
+            <span>USDC: 0x3600...0000</span>
+            <ExternalLink className="w-3 h-3 text-emerald-400" />
+          </a>
+          <div className="flex items-center gap-2 px-3 py-1 bg-gray-900 border border-gray-800 rounded-lg text-xs font-mono text-gray-300">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Arc Testnet (5042002)</span>
+          </div>
         </div>
       </div>
 
@@ -975,8 +997,21 @@ export default function OpenAidApp() {
             <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
               {txLogs.map((log) => (
                 <div key={log.id} className="p-2.5 bg-gray-900/80 border border-gray-800/80 rounded text-xs space-y-0.5">
-                  <div className="flex justify-between text-[10px] font-mono text-gray-500">
-                    <span className="text-blue-400">{log.txHash}</span>
+                  <div className="flex justify-between items-center text-[10px] font-mono text-gray-500">
+                    {log.txHash.length > 20 ? (
+                      <a
+                        href={`https://testnet.arcscan.app/tx/${log.txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:text-blue-300 hover:underline flex items-center gap-1 font-mono"
+                        title="View transaction on ArcScan Explorer"
+                      >
+                        <span>{log.txHash.slice(0, 10)}...{log.txHash.slice(-6)}</span>
+                        <ExternalLink className="w-2.5 h-2.5 flex-shrink-0" />
+                      </a>
+                    ) : (
+                      <span className="text-blue-400">{log.txHash}</span>
+                    )}
                     <span>{log.time}</span>
                   </div>
                   <div className={`text-xs ${log.type === "warn" ? "text-amber-300" : log.type === "error" ? "text-red-300" : "text-gray-300"}`}>

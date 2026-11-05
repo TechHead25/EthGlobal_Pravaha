@@ -37,6 +37,24 @@ const config: HardhatUserConfig = {
       timeout: 120000,
     },
   },
+  etherscan: {
+    apiKey: {
+      arcTestnet: "any",
+    },
+    customChains: [
+      {
+        network: "arcTestnet",
+        chainId: 5042002,
+        urls: {
+          apiURL: "https://testnet.arcscan.app/api",
+          browserURL: "https://testnet.arcscan.app",
+        },
+      },
+    ],
+  },
+  sourcify: {
+    enabled: false,
+  },
   paths: {
     sources: "./contracts",
     tests: "./test",
