@@ -102,7 +102,12 @@ export async function resolveDeploymentConfig(): Promise<DeploymentConfig> {
     }
 
     // 2. Prohibit MockUSDC on Arc Testnet / Remote networks
-    const externalUsdc = process.env.ARC_USDC_TOKEN_ADDRESS || process.env.USDC_TOKEN_ADDRESS;
+    let externalUsdc = process.env.ARC_USDC_TOKEN_ADDRESS || process.env.USDC_TOKEN_ADDRESS;
+    if (!externalUsdc && networkName === "arcTestnet") {
+      externalUsdc = "0x3600000000000000000000000000000000000000";
+      console.log(`[Info] ARC_USDC_TOKEN_ADDRESS not provided; using official Arc Testnet USDC: ${externalUsdc}`);
+    }
+
     if (!externalUsdc) {
       throw new Error(
         `[ConfigError] Refusing to deploy to remote network '${networkName}': ARC_USDC_TOKEN_ADDRESS must be explicitly provided. MockUSDC deployment is strictly prohibited on Arc Testnet.`

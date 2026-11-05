@@ -9,6 +9,8 @@ const ERC20_VERIFICATION_ABI = [
   "function balanceOf(address account) view returns (uint256)",
 ];
 
+export const OFFICIAL_ARC_TESTNET_USDC = "0x3600000000000000000000000000000000000000";
+
 export interface TokenVerificationResult {
   address: string;
   name: string;
@@ -25,7 +27,7 @@ export interface TokenVerificationResult {
  */
 export async function verifyToken(
   tokenAddress: string,
-  deployerAddress: string
+  deployerAddress?: string
 ): Promise<TokenVerificationResult> {
   if (!ethers.isAddress(tokenAddress)) {
     throw new Error(`[TokenVerificationError] Invalid token address format: '${tokenAddress}'`);
@@ -88,13 +90,15 @@ export async function verifyToken(
     totalSupply = 0n;
   }
 
-  // 4. Test interaction: query deployer balance
-  try {
-    deployerBalance = await tokenContract.balanceOf(deployerAddress);
-  } catch (err: any) {
-    throw new Error(
-      `[TokenVerificationError] Failed to call 'balanceOf(${deployerAddress})': ${err.message}`
-    );
+  // 4. Test interaction: query deployer balance if deployer address is provided
+  if (deployerAddress && deployerAddress !== ethers.ZeroAddress) {
+    try {
+      deployerBalance = await tokenContract.balanceOf(deployerAddress);
+    } catch (err: any) {
+      throw new Error(
+        `[TokenVerificationError] Failed to call 'balanceOf(${deployerAddress})': ${err.message}`
+      );
+    }
   }
 
   return {
@@ -110,28 +114,47 @@ export async function verifyToken(
 
 // Standalone execution support
 async function main() {
-  const tokenAddress = process.env.ARC_USDC_TOKEN_ADDRESS || process.env.USDC_TOKEN_ADDRESS;
+  const network = await ethers.provider.getNetwork();
+  let tokenAddress = process.env.ARC_USDC_TOKEN_ADDRESS || process.env.USDC_TOKEN_ADDRESS;
+
+  // If on Arc Testnet and no address explicitly passed, default to official Arc USDC ERC-20 address
+  if (!tokenAddress && (network.chainId === 5042002n || network.name === "arcTestnet")) {
+    tokenAddress = OFFICIAL_ARC_TESTNET_USDC;
+    console.log(`[Info] ARC_USDC_TOKEN_ADDRESS not provided in .env; defaulting to official Arc Testnet USDC: ${tokenAddress}`);
+  }
+
   if (!tokenAddress) {
-    console.error("Error: Please set ARC_USDC_TOKEN_ADDRESS or USDC_TOKEN_ADDRESS in your environment.");
+    console.error("Error: Please set ARC_USDC_TOKEN_ADDRESS or USDC_TOKEN_ADDRESS in your environment or .env file.");
     process.exit(1);
   }
 
-  const [deployer] = await ethers.getSigners();
-  const network = await ethers.provider.getNetwork();
+  const signers = await ethers.getSigners();
+  const deployerAddress = signers.length > 0 ? signers[0].address : undefined;
 
-  console.log("=== Verifying Token Configuration ===");
-  console.log(`Network: ${network.name} (Chain ID: ${network.chainId})`);
-  console.log(`Checking Token Address: ${tokenAddress}`);
-  console.log(`Deployer Account: ${deployer.address}`);
+  console.log("==================================================================");
+  console.log("            OpenAid Protocol — Token Contract Verification        ");
+  console.log("==================================================================");
+  console.log(`Target Network:       ${network.name}`);
+  console.log(`Chain ID:             ${network.chainId}`);
+  console.log(`Token Address:        ${tokenAddress}`);
+  console.log(`Deployer Account:     ${deployerAddress || "(Not configured in DEPLOYER_PRIVATE_KEY - read-only check)"}`);
 
-  const result = await verifyToken(tokenAddress, deployer.address);
-  console.log("Token Verification Passed Successfully:");
-  console.log(JSON.stringify(result, null, 2));
+  const result = await verifyToken(tokenAddress, deployerAddress);
+
+  console.log("\n[SUCCESS] Token Contract Verified on Connected Network:");
+  console.log(`  Token Name:         ${result.name}`);
+  console.log(`  Token Symbol:       ${result.symbol}`);
+  console.log(`  Token Decimals:     ${result.decimals} (Compatible with OpenAid Escrow)`);
+  console.log(`  Total Supply:       ${result.totalSupply}`);
+  if (deployerAddress) {
+    console.log(`  Deployer Balance:   ${result.deployerBalance}`);
+  }
+  console.log("==================================================================");
 }
 
 if (require.main === module) {
   main().catch((err) => {
-    console.error("Token verification failed:", err.message);
+    console.error("\n[Token Verification Failed]:", err.message);
     process.exit(1);
   });
 }
