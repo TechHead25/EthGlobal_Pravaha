@@ -1,0 +1,16 @@
+{
+  "name": "openaid-delivery-verification",
+  "version": "1.0.0",
+  "description": "Chainlink CRE workflow for humanitarian delivery evidence verification",
+  "entrypoint": "workflow.ts",
+  "trigger": {
+    "type": "HTTP",
+    "endpoint": "/verify-delivery"
+  },
+  "consensus": {
+    "type": "DON_THRESHOLD",
+    "threshold": "2/3"
+  },
+  "targetNetwork": "Arc-Testnet",
+  "authorityScope": "BOUNDED_ADVISORY"
+}
