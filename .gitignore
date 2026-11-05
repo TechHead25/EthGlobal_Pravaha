@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing and Coverage
+coverage/
+coverage.json
+.nyc_output/
+typechain/
+typechain-types/
+
+# Hardhat build artifacts and cache
+artifacts/
+cache/
+
+# Next.js build output
+.next/
+out/
+build/
+dist/
+
+# Environment and secrets
+.env
+.env*.local
+.env.production
+.env.staging
+*.pem
+*.key
+mnemonic.txt
+
+# Hardhat local node and test logs
+hardhat.log
+*.log
+
+# IDE and Editor configurations
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# Temporary / Scratch files
+tmp/
+temp/
+scratch/

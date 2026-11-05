@@ -1,0 +1,115 @@
+name: OpenAid Protocol CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repository-sanity:
+    name: Repository Sanity & Secrets Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify No Secrets Committed
+        run: |
+          echo "Checking for committed secret or environment files..."
+          if [ -f .env ] || [ -f .env.local ] || [ -f .env.production ]; then
+            echo "ERROR: Environment file committed!"
+            exit 1
+          fi
+          echo "Secret check passed: No live .env files present."
+
+      - name: Verify Documentation Links & Markdown
+        run: |
+          echo "Verifying documentation files presence..."
+          test -f README.md
+          test -f AGENTS.md
+          test -f .env.example
+          test -d docs
+          echo "Core documentation structure intact."
+
+  contracts-validation:
+    name: Contracts Compilation & Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: '**/package-lock.json'
+        continue-on-error: true
+
+      - name: Check if contracts package.json exists
+        id: check_contracts
+        run: |
+          if [ -f "package.json" ]; then
+            echo "has_package=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_package=false" >> $GITHUB_OUTPUT
+            echo "Pre-development documentation phase: package.json not yet initialized. Skipping test run."
+          fi
+
+      - name: Install Dependencies
+        if: steps.check_contracts.outputs.has_package == 'true'
+        run: npm ci
+
+      - name: Compile Contracts
+        if: steps.check_contracts.outputs.has_package == 'true'
+        run: npx hardhat compile
+
+      - name: Run Contract Tests
+        if: steps.check_contracts.outputs.has_package == 'true'
+        run: npx hardhat test
+
+  frontend-validation:
+    name: Frontend Lint & Build Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check if frontend package.json exists
+        id: check_frontend
+        run: |
+          if [ -f "frontend/package.json" ]; then
+            echo "has_frontend=true" >> $GITHUB_OUTPUT
+            echo "frontend_dir=frontend" >> $GITHUB_OUTPUT
+          elif [ -f "package.json" ] && grep -q '"next"' package.json; then
+            echo "has_frontend=true" >> $GITHUB_OUTPUT
+            echo "frontend_dir=." >> $GITHUB_OUTPUT
+          else
+            echo "has_frontend=false" >> $GITHUB_OUTPUT
+            echo "Pre-development documentation phase: frontend not yet initialized. Skipping frontend build."
+          fi
+
+      - name: Install Frontend Dependencies
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: ${{ steps.check_frontend.outputs.frontend_dir }}
+        run: npm ci
+
+      - name: Lint Frontend
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: ${{ steps.check_frontend.outputs.frontend_dir }}
+        run: npm run lint
+
+      - name: Build Frontend
+        if: steps.check_frontend.outputs.has_frontend == 'true'
+        working-directory: ${{ steps.check_frontend.outputs.frontend_dir }}
+        run: npm run build
