@@ -4,8 +4,11 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-// Securely parse deployer private key (only if valid 32-byte hex string)
-const deployerKey = process.env.DEPLOYER_PRIVATE_KEY;
+// Securely parse deployer private key (handles with or without 0x prefix, whitespace)
+let deployerKey = process.env.DEPLOYER_PRIVATE_KEY?.trim();
+if (deployerKey && !deployerKey.startsWith("0x") && /^[0-9a-fA-F]{64}$/.test(deployerKey)) {
+  deployerKey = `0x${deployerKey}`;
+}
 const arcAccounts = deployerKey && /^0x[0-9a-fA-F]{64}$/.test(deployerKey) ? [deployerKey] : [];
 
 const config: HardhatUserConfig = {
