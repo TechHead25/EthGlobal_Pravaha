@@ -9,6 +9,8 @@
     "test:contracts": "hardhat test test/OpenAidEscrow.test.ts",
     "test:arkiv": "mocha -r ts-node/register test/arkiv.test.ts",
     "test:cre": "mocha -r ts-node/register test/cre.test.ts",
+    "test:worldid": "mocha -r ts-node/register test/worldid.test.ts",
+    "test:all": "npm run test:contracts && npm run test:arkiv && npm run test:cre && npm run test:worldid",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
