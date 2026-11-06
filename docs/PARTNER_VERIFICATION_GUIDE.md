@@ -55,7 +55,8 @@ Five cardinal protocol invariants are mathematically and programmatically enforc
 4. **15% Backup Vendor Spread Cap:** If the winning vendor defaults or is penalized, the backup vendor can only be awarded if their revealed bid $\le 1.15 \times \text{winning\_bid}$. The defaulted vendor's slashed bond offsets any price difference.
 5. **No Sweep / Emergency Withdraw Backdoors:** Zero `emergencyWithdraw()`, owner rescue, or admin draining functions exist in the codebase.
 
-### 3. Live Deployed On-Chain Evidence
+### 3. Live Deployed On-Chain Evidence & Arc Studio Project
+- **Official Arc Studio Shareable Project URL:** [`https://studio.arc.io/share/openaid-protocol-pravaha-rtjnrr8cg5`](https://studio.arc.io/share/openaid-protocol-pravaha-rtjnrr8cg5) *(Bounty qualification requirement)*
 - **Network:** Arc Testnet (Chain ID: `5042002`, RPC: `https://rpc.testnet.arc.network`)
 - **Deployed OpenAidEscrow Contract:** [`0xe38151283e55077F621988679f2Cc524b785d236`](https://testnet.arcscan.app/address/0xe38151283e55077F621988679f2Cc524b785d236)
 - **Live ArcScan Blocks & Events:** Live on-chain activity viewable at Blocks `#71,080,450`, `#71,079,103`, and `#71,072,386`.
