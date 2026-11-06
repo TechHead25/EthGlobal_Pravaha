@@ -4,8 +4,49 @@ import * as React from "react";
 import { ethers } from "ethers";
 import { OPENAID_ESCROW_FULL_ABI } from "@/lib/arc/abis";
 import { attachTimestamps, mergeEvents, parseEscrowLogs, readCampaignCore } from "@/lib/escrow/reader";
-import type { CampaignView, EscrowEvent } from "@/lib/escrow/types";
+import type { CampaignMetadata, CampaignView, EscrowEvent } from "@/lib/escrow/types";
 import { useWallet } from "@/components/wallet/wallet-provider";
+
+async function resolveClientMetadata(cid: string): Promise<CampaignMetadata | null> {
+  if (!cid || typeof window === "undefined") return null;
+  // 1. Check local storage cache first
+  try {
+    const cached = localStorage.getItem(`openaid_meta_${cid}`);
+    if (cached) return JSON.parse(cached);
+  } catch {}
+  // 2. Fetch from public IPFS gateways with timeout
+  const gateways = [
+    (process.env.NEXT_PUBLIC_IPFS_GATEWAY || "https://gateway.pinata.cloud/ipfs/").replace(/\/?$/, "/"),
+    "https://ipfs.io/ipfs/",
+    "https://dweb.link/ipfs/",
+  ];
+  for (const gw of gateways) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 4000);
+      const res = await fetch(`${gw}${cid}`, { signal: ctrl.signal });
+      clearTimeout(t);
+      if (!res.ok) continue;
+      const raw = (await res.json()) as Record<string, unknown>;
+      const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : undefined);
+      const meta: CampaignMetadata = {
+        title: str(raw.title ?? raw.name, 140),
+        description: str(raw.description, 2000),
+        category: str(raw.category, 60),
+        urgency: str(raw.urgency, 30),
+        organization: str(raw.organization ?? raw.ngo, 120),
+        region: str(raw.region ?? raw.targetRegion, 120),
+      };
+      try {
+        localStorage.setItem(`openaid_meta_${cid}`, JSON.stringify(meta));
+      } catch {}
+      return meta;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
 
 /**
  * Shared live escrow state for every dashboard in a role section.
@@ -72,12 +113,20 @@ export function EscrowLiveProvider({
   const rereadCampaigns = React.useCallback(
     async (ids: number[]) => {
       if (ids.length === 0) return;
-      const updated = await Promise.all(ids.map(async (id) => [id, await readCampaignCore(escrow, id)] as const));
+      const updated = await Promise.all(
+        ids.map(async (id) => {
+          const core = await readCampaignCore(escrow, id);
+          if (!core) return [id, null, null] as const;
+          const prevMeta = campaignsRef.current.find((c) => c.id === id)?.metadata;
+          const meta = prevMeta ?? (await resolveClientMetadata(core.metadataCid));
+          return [id, core, meta] as const;
+        })
+      );
       setCampaigns((prev) => {
         const byId = new Map(prev.map((c) => [c.id, c]));
-        for (const [id, core] of updated) {
+        for (const [id, core, meta] of updated) {
           if (!core) continue;
-          byId.set(id, { ...core, metadata: byId.get(id)?.metadata ?? null });
+          byId.set(id, { ...core, metadata: meta ?? byId.get(id)?.metadata ?? null });
         }
         return [...byId.values()].sort((a, b) => b.id - a.id);
       });

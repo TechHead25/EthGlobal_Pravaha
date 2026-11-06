@@ -54,7 +54,13 @@ export function NgoCampaigns({ timingMode }: { timingMode: "DEMO" | "PRODUCTION"
           {mine.map((c) => {
             const raised = BigInt(c.totalDeposited);
             const budget = BigInt(c.budgetCeiling);
-            const m = c.metadata;
+            let m = c.metadata;
+            if (!m && typeof window !== "undefined" && c.metadataCid) {
+              try {
+                const cached = localStorage.getItem("openaid_meta_" + c.metadataCid.trim());
+                if (cached) m = JSON.parse(cached);
+              } catch {}
+            }
             const flow = computeFundFlow(c, live.events);
             const open = expanded === c.id;
             const actions: React.ReactNode[] = [];
@@ -130,7 +136,7 @@ export function NgoCampaigns({ timingMode }: { timingMode: "DEMO" | "PRODUCTION"
                       {m?.region ? <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><MapPin className="h-3.5 w-3.5" aria-hidden />{m.region}</span> : null}
                     </div>
                     <Link href={`/campaigns/${c.id}`} className="mt-2 block font-display text-xl tracking-tight hover:underline">{m?.title || `Campaign #${c.id}`}</Link>
-                    {!m ? <p className="text-xs text-muted-foreground">Metadata not retrievable from IPFS — title, category and urgency unavailable.</p> : null}
+                    {!m ? <p className="text-xs text-muted-foreground">On-chain metadata CID anchored: <span className="font-mono text-[0.7rem]">{c.metadataCid.slice(0, 20)}…</span></p> : null}
                   </div>
                   <div className="w-full max-w-sm">
                     <div className="mb-1.5 flex justify-between text-sm">
