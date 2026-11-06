@@ -224,8 +224,8 @@ export function Notice({
       role={tone === "error" ? "alert" : "status"}
       className={cn(
         "flex gap-3 rounded-lg border px-4 py-3 text-sm",
-        tone === "info" && "border-sky-700/15 bg-sky-50/80 text-sky-900",
-        tone === "warning" && "border-pending/25 bg-pending-soft text-[hsl(30_70%_25%)]",
+        tone === "info" && "border-info/20 bg-info-soft text-info",
+        tone === "warning" && "border-pending/25 bg-pending-soft text-[hsl(var(--warning-text))]",
         tone === "error" && "border-destructive/25 bg-destructive-soft text-destructive",
         tone === "success" && "border-verified/20 bg-verified-soft text-verified",
         className

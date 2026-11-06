@@ -31,13 +31,17 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTML
 );
 Textarea.displayName = "Textarea";
 
+const SELECT_CHEVRON =
+  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")";
+
 export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(
-  ({ className, children, ...props }, ref) => (
+  ({ className, children, style, ...props }, ref) => (
     <select
       ref={ref}
+      // Chevron set inline: an arbitrary bg-[url()] class is merged away against bg-card by tailwind-merge.
+      style={{ backgroundImage: SELECT_CHEVRON, backgroundSize: "16px", backgroundPosition: "right 0.6rem center", backgroundRepeat: "no-repeat", ...style }}
       className={cn(
-        "flex h-10 w-full appearance-none rounded-md border border-input bg-card bg-[length:16px] bg-[right_0.6rem_center] bg-no-repeat px-3 pr-9 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 aria-[invalid=true]:border-destructive",
-        "bg-[url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E\")]",
+        "flex h-10 w-full appearance-none rounded-md border border-input bg-card px-3 pr-9 text-sm text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 aria-[invalid=true]:border-destructive",
         className
       )}
       {...props}

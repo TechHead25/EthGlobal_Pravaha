@@ -89,7 +89,7 @@ export function PendingActions({ items, emptyLabel = "Nothing needs your attenti
           <span
             className={cn(
               "h-2 w-2 shrink-0 rounded-full",
-              a.tone === "verified" ? "bg-verified" : a.tone === "failed" ? "bg-destructive" : a.tone === "info" ? "bg-sky-600" : "bg-pending"
+              a.tone === "verified" ? "bg-verified" : a.tone === "failed" ? "bg-destructive" : a.tone === "info" ? "bg-info" : "bg-pending"
             )}
             aria-hidden
           />
