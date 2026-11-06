@@ -25,7 +25,14 @@ import {
   Info
 } from "lucide-react";
 import { ethers } from "ethers";
-import { ArkivEntity, ProcurementRequestEntity, ProcurementBidEntity } from "@/lib/arkiv/types";
+import {
+  ArkivEntity,
+  ProcurementRequestEntity,
+  ProcurementBidEntity,
+  DeliveryEvidenceEntity,
+  ValidatorReviewEntity,
+} from "@/lib/arkiv/types";
+import { ARKIV_CONFIG, getArkivExplorerEntityUrl } from "@/lib/arkiv/config";
 import { CreVerificationResult } from "@/lib/cre/workflow";
 import { WorldIdVerificationResponse } from "@/lib/worldid/types";
 import {
@@ -85,6 +92,8 @@ export default function OpenAidApp() {
   const [waybillInput, setWaybillInput] = useState("RELIEF-BLANKETS-2026-0042");
   const [arkivEntities, setArkivEntities] = useState<ArkivEntity[]>([]);
   const [arkivFilter, setArkivFilter] = useState<string>("all");
+  const [arkivLoading, setArkivLoading] = useState<boolean>(false);
+  const [arkivError, setArkivError] = useState<string | null>(null);
   const [creResult, setCreResult] = useState<CreVerificationResult | null>(null);
   const [creLoading, setCreLoading] = useState(false);
   const [worldIdVerified, setWorldIdVerified] = useState(false);
@@ -159,11 +168,31 @@ export default function OpenAidApp() {
     }
   }, [wallet.address]);
 
+  // Fetch Arkiv Entities from Rabdi testnet
+  const fetchArkivEntities = useCallback(async () => {
+    setArkivLoading(true);
+    setArkivError(null);
+    try {
+      const res = await fetch("/api/arkiv");
+      const data = await res.json();
+      if (data.success) {
+        setArkivEntities(data.entities || []);
+      } else {
+        setArkivError(data.error || "Failed to load Arkiv entities from Rabdi testnet");
+      }
+    } catch (err: any) {
+      console.error("Failed to load Arkiv entities", err);
+      setArkivError("Network error connecting to Arkiv query endpoint");
+    } finally {
+      setArkivLoading(false);
+    }
+  }, []);
+
   // Initial load
   useEffect(() => {
     refreshOnChainData(null);
     fetchArkivEntities();
-  }, [refreshOnChainData]);
+  }, [refreshOnChainData, fetchArkivEntities]);
 
   // Detect and handle injected wallet events
   useEffect(() => {
@@ -233,19 +262,6 @@ export default function OpenAidApp() {
       };
     }
   }, [refreshOnChainData]);
-
-  // Fetch Arkiv Entities
-  const fetchArkivEntities = async () => {
-    try {
-      const res = await fetch("/api/arkiv");
-      const data = await res.json();
-      if (data.success) {
-        setArkivEntities(data.entities);
-      }
-    } catch (err) {
-      console.error("Failed to load Arkiv entities", err);
-    }
-  };
 
   // --------------------------------------------------------------------------
   // Wallet Connection Handlers
@@ -1254,49 +1270,170 @@ export default function OpenAidApp() {
                 <Database className="w-5 h-5 text-purple-400" />
                 <h4 className="text-base font-bold text-white">Arkiv Database</h4>
               </div>
-              <span className="text-[10px] bg-purple-950 text-purple-400 border border-purple-800 px-2 py-0.5 rounded font-mono">
-                Expiring Shared State
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={fetchArkivEntities}
+                  disabled={arkivLoading}
+                  className="p-1 text-gray-400 hover:text-purple-300 transition"
+                  title="Refresh Arkiv database records from Rabdi testnet"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${arkivLoading ? "animate-spin text-purple-400" : ""}`} />
+                </button>
+                <a
+                  href={ARKIV_CONFIG.explorerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] bg-purple-950/80 hover:bg-purple-900 text-purple-300 border border-purple-800 px-2.5 py-1 rounded-md font-mono flex items-center gap-1.5 transition"
+                  title="View Arkiv Rabdi Testnet Explorer (Chain ID 7794095)"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                  <span>Rabdi Testnet (7794095)</span>
+                  <ExternalLink className="w-2.5 h-2.5 text-purple-400" />
+                </a>
+              </div>
             </div>
             <p className="text-xs text-gray-400">
-              Queryable, wallet-owned procurement entities with 14-day TTL expiration, offloading storage costs from the blockchain.
+              Time-scoped, wallet-owned procurement metadata stored on Arkiv Rabdi testnet under schema namespace <code className="text-purple-300 font-mono">openaid.v1.*</code> with cryptographic ownership and automated TTL expiration.
             </p>
 
-            {/* Filter buttons */}
-            <div className="flex gap-1.5 text-xs">
-              {["all", "ProcurementRequest", "ProcurementBid"].map((filt) => (
+            {/* Filter buttons across all 4 entity types */}
+            <div className="flex flex-wrap gap-1.5 text-xs">
+              {[
+                { id: "all", label: "All" },
+                { id: "ProcurementRequest", label: "Requests" },
+                { id: "ProcurementBid", label: "Bids" },
+                { id: "DeliveryEvidence", label: "Evidence" },
+                { id: "ValidatorReview", label: "Reviews" },
+              ].map((filt) => (
                 <button
-                  key={filt}
-                  onClick={() => setArkivFilter(filt)}
-                  className={`px-2.5 py-1 rounded transition ${
-                    arkivFilter === filt ? "bg-purple-600 text-white font-semibold" : "bg-gray-900 text-gray-400 hover:text-white"
+                  key={filt.id}
+                  onClick={() => setArkivFilter(filt.id)}
+                  className={`px-2.5 py-1 rounded transition text-xs ${
+                    arkivFilter === filt.id
+                      ? "bg-purple-600 text-white font-semibold shadow-sm"
+                      : "bg-gray-900 text-gray-400 hover:text-white border border-gray-800"
                   }`}
                 >
-                  {filt === "all" ? "All" : filt === "ProcurementRequest" ? "Requests" : "Bids"}
+                  {filt.label}
                 </button>
               ))}
             </div>
 
             {/* Entity List */}
-            <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
-              {arkivEntities
-                .filter((e) => arkivFilter === "all" || e.type === arkivFilter)
-                .map((entity) => (
-                  <div key={entity.id} className="p-3 bg-gray-900/90 border border-gray-800 rounded-lg text-xs space-y-1">
-                    <div className="flex justify-between items-center font-mono">
-                      <span className="text-purple-300 font-semibold">{entity.id}</span>
-                      <span className="text-[10px] text-gray-400">TTL: 14d</span>
-                    </div>
-                    <div className="text-gray-300">
-                      {"title" in entity && entity.title}
-                      {"commitHash" in entity && `Bid Hash: ${entity.commitHash.slice(0, 16)}...`}
-                    </div>
-                    <div className="flex justify-between text-[11px] text-gray-400 pt-1">
-                      <span>Owner: {entity.owner.slice(0, 8)}...</span>
-                      <span className="text-emerald-400 font-semibold">{"status" in entity && entity.status}</span>
-                    </div>
+            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+              {arkivLoading ? (
+                <div className="p-6 bg-gray-900/40 border border-gray-800 rounded-lg text-center space-y-2">
+                  <RefreshCw className="w-5 h-5 text-purple-400 animate-spin mx-auto" />
+                  <div className="text-xs text-gray-400 font-mono">Querying Rabdi testnet for openaid.v1.* schemas...</div>
+                </div>
+              ) : arkivError ? (
+                <div className="p-3 bg-red-950/50 border border-red-800/80 rounded-lg text-xs text-red-300 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+                    <span>{arkivError}</span>
                   </div>
-                ))}
+                  <button onClick={fetchArkivEntities} className="text-xs text-red-200 underline hover:text-white">Retry</button>
+                </div>
+              ) : arkivEntities.filter((e) => arkivFilter === "all" || e.type === arkivFilter).length === 0 ? (
+                <div className="p-6 bg-gray-900/40 border border-dashed border-gray-800 rounded-lg text-center space-y-2">
+                  <Database className="w-6 h-6 text-purple-400/50 mx-auto" />
+                  <p className="text-xs text-gray-300">
+                    No Arkiv records found on Rabdi testnet for <code className="text-purple-300 font-mono">openaid.v1.*</code> schemas.
+                  </p>
+                  <p className="text-[11px] text-gray-500">
+                    As campaigns, bids, and evidence are registered, their expiring metadata will be queryable here.
+                  </p>
+                </div>
+              ) : (
+                arkivEntities
+                  .filter((e) => arkivFilter === "all" || e.type === arkivFilter)
+                  .map((entity) => (
+                    <div key={entity.id} className="p-3 bg-gray-900/90 border border-gray-800 hover:border-gray-700 rounded-lg text-xs space-y-1.5 transition">
+                      <div className="flex justify-between items-center font-mono">
+                        <a
+                          href={getArkivExplorerEntityUrl(entity.id)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-purple-300 hover:text-purple-200 font-semibold flex items-center gap-1 hover:underline"
+                          title="Inspect raw entity on Arkiv Rabdi Explorer"
+                        >
+                          <span>{entity.id.length > 20 ? formatAddress(entity.id, 8) : entity.id}</span>
+                          <ExternalLink className="w-2.5 h-2.5 text-purple-400" />
+                        </a>
+                        <span className="text-[10px] bg-gray-800 text-gray-400 border border-gray-700 px-1.5 py-0.5 rounded">
+                          {entity.type === "ProcurementRequest"
+                            ? "TTL 14d"
+                            : entity.type === "ProcurementBid"
+                            ? "TTL 7d"
+                            : "TTL 30d"}
+                        </span>
+                      </div>
+
+                      {/* Content per Entity Type */}
+                      {entity.type === "ProcurementRequest" && (
+                        <div>
+                          <div className="text-gray-200 font-medium">{entity.title}</div>
+                          <div className="text-[11px] text-gray-400 flex justify-between pt-0.5">
+                            <span>Campaign #{entity.campaignId} • {entity.itemCount} {entity.itemUnit} ({entity.targetRegion})</span>
+                            <span className="font-semibold text-emerald-400">${entity.budgetCeilingUSDC.toLocaleString()} USDC max</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {entity.type === "ProcurementBid" && (
+                        <div>
+                          <div className="text-gray-300 font-mono text-[11px]">
+                            Bid Hash: {entity.commitHash.slice(0, 18)}...
+                          </div>
+                          <div className="text-[11px] text-gray-400 flex justify-between pt-0.5">
+                            <span>Campaign #{entity.campaignId} • Vendor: {formatAddress(entity.vendorAddress)}</span>
+                            {entity.revealedBidUSDC !== undefined && (
+                              <span className="font-semibold text-emerald-400">${entity.revealedBidUSDC.toLocaleString()} USDC</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {entity.type === "DeliveryEvidence" && (
+                        <div>
+                          <div className="text-gray-200 font-medium">
+                            {entity.carrierName} — Waybill: <span className="font-mono text-purple-300">{entity.waybillNumber}</span>
+                          </div>
+                          <div className="text-[11px] text-gray-400 flex justify-between pt-0.5">
+                            <span>Manifest CID: {entity.manifestCid.slice(0, 14)}...</span>
+                            <span className="text-emerald-400 font-semibold">{entity.verifiedItemCount} / {entity.packageCount} units</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {entity.type === "ValidatorReview" && (
+                        <div>
+                          <div className="flex justify-between items-center text-[11px]">
+                            <span className="text-gray-300">Campaign #{entity.campaignId} Attestation</span>
+                            <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${
+                              entity.decision === "APPROVE" ? "bg-emerald-950 text-emerald-400 border border-emerald-800" : "bg-red-950 text-red-400 border border-red-800"
+                            }`}>
+                              {entity.decision}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-gray-400 pt-0.5 flex items-center justify-between">
+                            <span>{entity.notes || "Quorum review"}</span>
+                            {entity.humanVerified && (
+                              <span className="text-cyan-400 text-[10px] flex items-center gap-0.5">
+                                <Fingerprint className="w-2.5 h-2.5" /> World ID ✓
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center text-[10px] text-gray-500 pt-1 border-t border-gray-800/60 font-mono">
+                        <span>Owner: {formatAddress(entity.owner)}</span>
+                        <span className="text-purple-400/90 font-medium">{"status" in entity ? entity.status : "openaid.v1"}</span>
+                      </div>
+                    </div>
+                  ))
+              )}
             </div>
           </div>
 

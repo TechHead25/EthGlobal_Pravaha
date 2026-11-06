@@ -1,14 +1,23 @@
 /**
  * @file types.ts
- * @notice Schemas and types for Arkiv wallet-owned queryable entities.
+ * @notice Typed data models for Arkiv decentralized entities in OpenAid Protocol.
+ *         Reflects on-chain entity layouts with schema tags and expiration bounds.
  */
 
+export type ArkivEntityType =
+  | "ProcurementRequest"
+  | "ProcurementBid"
+  | "DeliveryEvidence"
+  | "ValidatorReview";
+
 export interface ArkivEntityBase {
-  id: string;
-  type: "ProcurementRequest" | "ProcurementBid" | "DeliveryEvidence" | "ValidatorReview";
-  owner: string; // Ethereum wallet address of the entity creator
-  createdAt: number; // Unix timestamp in seconds
-  expiresAt: number; // Unix timestamp in seconds (time-scoped state)
+  id: string;               // Arkiv entity key (Hex format 0x...)
+  type: ArkivEntityType;
+  owner: string;            // Ethereum wallet address of the entity creator
+  createdAt: number;        // Unix timestamp or creation block
+  expiresAt: number;        // Expiration boundary timestamp or block
+  txHash?: string;          // Creation/mutation transaction hash on Rabdi testnet
+  schema?: string;          // Qualified schema tag (e.g. openaid.v1.requests)
 }
 
 export interface ProcurementRequestEntity extends ArkivEntityBase {
@@ -20,7 +29,7 @@ export interface ProcurementRequestEntity extends ArkivEntityBase {
   itemUnit: string;
   budgetCeilingUSDC: number;
   targetRegion: string;
-  status: "Funding" | "OpenForBids" | "UnderReview" | "Delivered" | "Settled" | "Expired";
+  status: "Funding" | "OpenForBids" | "UnderReview" | "Delivered" | "Settled" | "Expired" | string;
   metadataCid: string;
 }
 
@@ -30,7 +39,7 @@ export interface ProcurementBidEntity extends ArkivEntityBase {
   vendorAddress: string;
   commitHash: string;
   revealedBidUSDC?: number;
-  status: "Committed" | "Revealed" | "Won" | "Lost" | "Expired";
+  status: "Committed" | "Revealed" | "Won" | "Lost" | "Expired" | string;
 }
 
 export interface DeliveryEvidenceEntity extends ArkivEntityBase {
@@ -48,8 +57,8 @@ export interface ValidatorReviewEntity extends ArkivEntityBase {
   type: "ValidatorReview";
   campaignId: number;
   validatorAddress: string;
-  decision: "APPROVE" | "REJECT";
-  humanVerified: boolean; // World ID human verification flag
+  decision: "APPROVE" | "REJECT" | string;
+  humanVerified: boolean;
   notes: string;
 }
 
@@ -60,9 +69,18 @@ export type ArkivEntity =
   | ValidatorReviewEntity;
 
 export interface ArkivQueryFilter {
-  type?: ArkivEntity["type"];
+  type?: ArkivEntityType;
   owner?: string;
   status?: string;
   campaignId?: number;
   activeOnly?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export interface ArkivPaginatedResult {
+  entities: ArkivEntity[];
+  totalCount?: number;
+  blockNumber: bigint;
+  hasMore: boolean;
 }
