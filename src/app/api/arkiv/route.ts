@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { arkiv } from "@/lib/arkiv/adapter";
-import { getArkivServerWalletClient } from "@/lib/arkiv/config";
-import { ArkivEntityType } from "@/lib/arkiv/types";
-import { validateEntityPayload, validatePublicSuitability } from "@/lib/arkiv/validation";
+import { arkiv } from "../../../lib/arkiv/adapter";
+import { getArkivServerWalletClient } from "../../../lib/arkiv/config";
+import { ArkivEntityType } from "../../../lib/arkiv/types";
+import { validateEntityPayload, validatePublicSuitability, scrubPII } from "../../../lib/arkiv/validation";
 import { Hex } from "viem";
 import { can } from "@/lib/auth/roles";
 import { getPrincipal } from "@/server/session";
@@ -29,15 +29,50 @@ async function authorizeWrite(req: NextRequest): Promise<NextResponse | null> {
 /**
  * GET /api/arkiv
  * Public read endpoint for querying time-scoped, wallet-owned entities from Arkiv Rabdi testnet.
+ * Also supports donor audit trail reconstruction:
+ *   GET /api/arkiv?action=auditTrail&campaignId=X&subVaultId=Y
  */
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
+    const action = searchParams.get("action");
+
+    // Donor Audit Trail Route
+    if (action === "auditTrail") {
+      const campaignIdParam = searchParams.get("campaignId");
+      if (!campaignIdParam || isNaN(parseInt(campaignIdParam, 10)) || parseInt(campaignIdParam, 10) <= 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Missing or invalid required query parameter: 'campaignId' (must be a positive integer)",
+          },
+          { status: 400 }
+        );
+      }
+
+      const campaignId = parseInt(campaignIdParam, 10);
+      const subVaultId = searchParams.get("subVaultId")
+        ? parseInt(searchParams.get("subVaultId")!, 10)
+        : undefined;
+
+      const events = await arkiv.getAuditTrail(campaignId, subVaultId);
+
+      return NextResponse.json({
+        success: true,
+        campaignId,
+        subVaultId,
+        count: events.length,
+        events,
+      });
+    }
+
+    // Standard entity query
     const type = (searchParams.get("type") as ArkivEntityType) || undefined;
     const status = searchParams.get("status") || undefined;
     const owner = searchParams.get("owner") || undefined;
     const activeOnly = searchParams.get("activeOnly") === "true";
     const campaignId = searchParams.get("campaignId") ? parseInt(searchParams.get("campaignId")!, 10) : undefined;
+    const subVaultId = searchParams.get("subVaultId") ? parseInt(searchParams.get("subVaultId")!, 10) : undefined;
     const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!, 10) : undefined;
     const offset = searchParams.get("offset") ? parseInt(searchParams.get("offset")!, 10) : undefined;
 
@@ -47,6 +82,7 @@ export async function GET(req: NextRequest) {
       owner,
       activeOnly,
       campaignId,
+      subVaultId,
       limit,
       offset,
     });
@@ -89,7 +125,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    validateEntityPayload(type, payload);
+    // Enforce strict PII scrubbing and payload validation
+    const scrubbedPayload = scrubPII(payload);
+    validateEntityPayload(type, scrubbedPayload);
 
     const serverKey = process.env.ARKIV_SERVER_SIGNER_KEY as Hex | undefined;
 
@@ -107,12 +145,12 @@ export async function POST(req: NextRequest) {
       }
 
       // Use local adapter mock write
-      const created = await arkiv.createEntityWithWallet(null, type, payload);
+      const created = await arkiv.createEntityWithWallet(null, type, scrubbedPayload);
       return NextResponse.json({ success: true, entity: created, mode: "mock" });
     }
 
     const walletClient = getArkivServerWalletClient(serverKey);
-    const created = await arkiv.createEntityWithWallet(walletClient, type, payload);
+    const created = await arkiv.createEntityWithWallet(walletClient, type, scrubbedPayload);
 
     return NextResponse.json({ success: true, entity: created, mode: "network" });
   } catch (error: any) {
@@ -138,17 +176,18 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    validatePublicSuitability(updates);
+    const scrubbedUpdates = scrubPII(updates);
+    validatePublicSuitability(scrubbedUpdates);
 
     const serverKey = process.env.ARKIV_SERVER_SIGNER_KEY as Hex | undefined;
 
     if (process.env.ARKIV_MOCK_MODE === "true" || !serverKey) {
-      const updated = await arkiv.patchEntityWithWallet(null, type, id, updates);
+      const updated = await arkiv.patchEntityWithWallet(null, type, id, scrubbedUpdates);
       return NextResponse.json({ success: true, entity: updated, mode: "mock" });
     }
 
     const walletClient = getArkivServerWalletClient(serverKey);
-    const updated = await arkiv.patchEntityWithWallet(walletClient, type, id, updates);
+    const updated = await arkiv.patchEntityWithWallet(walletClient, type, id, scrubbedUpdates);
 
     return NextResponse.json({ success: true, entity: updated, mode: "network" });
   } catch (error: any) {
