@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   ShieldCheck,
   Coins,
@@ -82,6 +82,7 @@ export default function OpenAidApp() {
   // Funding Form & Execution State
   const [depositInput, setDepositInput] = useState<string>("500");
   const [fundingStatus, setFundingStatus] = useState<FundingStatus>({ step: "idle" });
+  const isSubmittingDepositRef = useRef<boolean>(false);
 
   // Simulation & Downstream Partner States (clearly distinguished from live on-chain operations)
   const [vendorBidAmount, setVendorBidAmount] = useState("8500");
@@ -244,11 +245,16 @@ export default function OpenAidApp() {
       const handleChainChanged = (newChainIdHex: string) => {
         const newChainId = typeof newChainIdHex === "string" ? parseInt(newChainIdHex, 16) : Number(newChainIdHex);
         const isCorrect = isArcTestnet(newChainId);
-        setWallet((prev) => ({
-          ...prev,
-          chainId: newChainId,
-          isCorrectNetwork: isCorrect,
-        }));
+        setWallet((prev) => {
+          if (isCorrect && prev.address) {
+            refreshOnChainData(prev.address);
+          }
+          return {
+            ...prev,
+            chainId: newChainId,
+            isCorrectNetwork: isCorrect,
+          };
+        });
       };
 
       ethereum.on("accountsChanged", handleAccountsChanged);
@@ -332,28 +338,36 @@ export default function OpenAidApp() {
   const handleRealDeposit = async () => {
     setActionError(null);
 
+    if (isSubmittingDepositRef.current) return;
+    isSubmittingDepositRef.current = true;
+
     if (!wallet.isConnected || !wallet.address) {
       setActionError("Please connect your wallet first.");
+      isSubmittingDepositRef.current = false;
       return;
     }
 
     if (!wallet.isCorrectNetwork) {
       setActionError("Wallet is connected to the wrong network. Please switch to Arc Testnet (Chain ID 5042002) before transacting.");
+      isSubmittingDepositRef.current = false;
       return;
     }
 
     if (!accounting || !accounting.hasBytecode) {
       setActionError("Escrow contract not found or unverified on Arc Testnet.");
+      isSubmittingDepositRef.current = false;
       return;
     }
 
     if (accounting.campaignCount === 0 || !onChainCampaign) {
       setActionError("No active on-chain campaign exists to receive funding. An authorized organizer must create campaign #1 first.");
+      isSubmittingDepositRef.current = false;
       return;
     }
 
     if (onChainCampaign.state !== CampaignState.FundingActive) {
       setActionError(`Campaign is not accepting donations (Current on-chain state: ${onChainCampaign.stateLabel}).`);
+      isSubmittingDepositRef.current = false;
       return;
     }
 
@@ -367,6 +381,7 @@ export default function OpenAidApp() {
 
     if (!validation.valid || !validation.parsedAmount) {
       setActionError(validation.error || "Invalid donation amount.");
+      isSubmittingDepositRef.current = false;
       return;
     }
 
@@ -404,6 +419,8 @@ export default function OpenAidApp() {
       const parsedErr = parseEthereumError(err);
       setFundingStatus({ step: "error", errorMessage: parsedErr });
       setActionError(parsedErr);
+    } finally {
+      isSubmittingDepositRef.current = false;
     }
   };
 
@@ -502,28 +519,28 @@ export default function OpenAidApp() {
             <Coins className="w-4 h-4 text-blue-400" />
             <div>
               <div className="font-semibold">Arc + USDC</div>
-              <div className="text-[10px] text-gray-400">Purpose Escrow</div>
+              <div className="text-[10px] text-gray-400">On-Chain Escrow (T1)</div>
             </div>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#131b2e] border border-purple-900/60 text-xs text-purple-300">
             <Database className="w-4 h-4 text-purple-400" />
             <div>
               <div className="font-semibold">Arkiv</div>
-              <div className="text-[10px] text-gray-400">Queryable DB</div>
+              <div className="text-[10px] text-gray-400">Queryable DB (T2)</div>
             </div>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#131b2e] border border-cyan-900/60 text-xs text-cyan-300">
             <Cpu className="w-4 h-4 text-cyan-400" />
             <div>
               <div className="font-semibold">Chainlink CRE</div>
-              <div className="text-[10px] text-gray-400">Evidence Oracle</div>
+              <div className="text-[10px] text-gray-400">Evidence Oracle (T3)</div>
             </div>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-[#131b2e] border border-emerald-900/60 text-xs text-emerald-300">
             <Fingerprint className="w-4 h-4 text-emerald-400" />
             <div>
               <div className="font-semibold">World IDKit</div>
-              <div className="text-[10px] text-gray-400">Human Proof</div>
+              <div className="text-[10px] text-gray-400">Human Proof (T3)</div>
             </div>
           </div>
         </div>
@@ -798,7 +815,11 @@ export default function OpenAidApp() {
                     Verified
                   </span>
                 </div>
-                <h2 className="text-2xl font-bold text-white">Emergency Thermal Blankets (500 units) - Flood Relief</h2>
+                <h2 className="text-2xl font-bold text-white">
+                  {onChainCampaign.id === 1
+                    ? "Emergency Thermal Blankets (500 units) - Flood Relief"
+                    : `Humanitarian Aid Procurement — Campaign #${onChainCampaign.id}`}
+                </h2>
                 <p className="text-sm text-gray-400 mt-1">
                   Creator: <span className="font-mono text-gray-300">{formatAddress(onChainCampaign.creator)}</span> • IPFS Manifest: <span className="font-mono text-gray-300">{onChainCampaign.metadataCid.slice(0, 16)}...</span>
                 </p>
@@ -1139,13 +1160,23 @@ export default function OpenAidApp() {
                 </div>
                 <button
                   onClick={() => {
-                    const mockHash = "0x" + Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join("");
-                    setCommittedHash(mockHash);
-                    setPreviewBannerMsg(`Generated sealed bid hash: ${mockHash.slice(0, 16)}... (Ready for commitBid() once auction opens)`);
+                    try {
+                      const bidUnits = ethers.parseUnits(vendorBidAmount || "0", accounting?.tokenDecimals ?? 6);
+                      const saltBytes = ethers.encodeBytes32String((vendorSalt || "salt").slice(0, 31));
+                      const vendorAddr = wallet.address || "0x90F79bf6EB2c4f870365E785982E1f101E93b906";
+                      const realHash = ethers.solidityPackedKeccak256(
+                        ["uint256", "bytes32", "address"],
+                        [bidUnits, saltBytes, vendorAddr]
+                      );
+                      setCommittedHash(realHash);
+                      setPreviewBannerMsg(`Calculated cryptographic keccak256 commitment: ${realHash.slice(0, 18)}... (Bound to vendor ${formatAddress(vendorAddr)})`);
+                    } catch (err: any) {
+                      setActionError(`Failed to calculate sealed bid hash: ${err.message}`);
+                    }
                   }}
                   className="w-full bg-amber-600 hover:bg-amber-500 text-white font-semibold py-2.5 rounded text-sm transition"
                 >
-                  Generate Sealed Hash (Demo Calculator)
+                  Calculate Cryptographic Keccak256 Commitment (Sealed Bid)
                 </button>
               </div>
 
@@ -1173,6 +1204,9 @@ export default function OpenAidApp() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-cyan-300 font-semibold text-sm">
                     <Cpu className="w-4 h-4" /> Chainlink CRE Evidence Analysis
+                    <span className="text-[10px] bg-cyan-950 text-cyan-300 border border-cyan-800 px-2 py-0.5 rounded font-mono">
+                      DON SIMULATOR
+                    </span>
                   </div>
                   <button
                     onClick={handleRunCreCheck}
@@ -1209,6 +1243,9 @@ export default function OpenAidApp() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-emerald-300 font-semibold text-sm">
                     <Fingerprint className="w-4 h-4" /> World ID Human Proof Required
+                    <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded font-mono">
+                      ZK SANDBOX
+                    </span>
                   </div>
                   {worldIdVerified ? (
                     <span className="text-xs bg-emerald-950 text-emerald-400 border border-emerald-800 px-2.5 py-1 rounded-full font-mono flex items-center gap-1">
@@ -1232,8 +1269,11 @@ export default function OpenAidApp() {
 
               {/* Validator On-Chain Voting Matrix */}
               <div className="space-y-3">
-                <div className="text-xs font-semibold text-gray-400 uppercase">
-                  Validator Council Attestation (3 of 5 Required)
+                <div className="flex items-center justify-between text-xs font-semibold text-gray-400 uppercase">
+                  <span>Validator Council Attestation (3 of 5 Required)</span>
+                  <span className="text-[10px] bg-gray-800 text-gray-400 border border-gray-700 px-2 py-0.5 rounded font-mono normal-case">
+                    DEMO SIMULATOR
+                  </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {["Validator 1 (UN Affiliate)", "Validator 2 (Red Cross)", "Validator 3 (Community Auditor)"].map((val, idx) => (
