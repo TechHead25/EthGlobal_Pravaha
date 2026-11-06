@@ -1,0 +1,149 @@
+// OpenAid Protocol — application database (identity, roles, organizations, audit).
+// Stores NO funds, keys, OAuth tokens, or World ID proofs. On-chain state lives on Arc.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum AppRole {
+  USER
+  DONOR
+  NGO
+  VENDOR
+  VALIDATOR
+  ADMIN
+}
+
+enum RoleRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum OrganizationKind {
+  NGO
+  VENDOR
+}
+
+enum OrganizationStatus {
+  PENDING_REVIEW
+  VERIFIED
+  REJECTED
+}
+
+model User {
+  id                String        @id @default(cuid())
+  googleSub         String        @unique
+  email             String        @unique
+  name              String?
+  image             String?
+  status            AccountStatus @default(ACTIVE)
+  worldIdVerifiedAt DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  lastLoginAt       DateTime?
+
+  roleGrants     RoleGrant[]      @relation("RoleGrantUser")
+  roleRequests   RoleRequest[]    @relation("RoleRequestUser")
+  organizations  Organization[]
+  worldIdNullifiers WorldIdNullifier[]
+}
+
+/// Append-only role grant ledger. A grant is active while revokedAt is null.
+model RoleGrant {
+  id          String    @id @default(cuid())
+  userId      String
+  role        AppRole
+  grantedById String?   // null => granted by operator CLI / self-service policy
+  grantedAt   DateTime  @default(now())
+  reason      String?
+  revokedAt   DateTime?
+  revokedById String?
+  revokeReason String?
+
+  user User @relation("RoleGrantUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, role, revokedAt])
+}
+
+model RoleRequest {
+  id             String            @id @default(cuid())
+  userId         String
+  role           AppRole
+  status         RoleRequestStatus @default(PENDING)
+  justification  String
+  walletAddress  String?           // claimed address, informational only (never trusted for authz)
+  organizationId String?
+  reviewedById   String?
+  reviewedAt     DateTime?
+  reviewNote     String?
+  createdAt      DateTime          @default(now())
+
+  user         User          @relation("RoleRequestUser", fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([userId, role, status])
+}
+
+model Organization {
+  id                 String             @id @default(cuid())
+  ownerId            String
+  kind               OrganizationKind
+  name               String
+  website            String?
+  registrationNumber String?
+  country            String
+  description        String
+  status             OrganizationStatus @default(PENDING_REVIEW)
+  reviewedById       String?
+  reviewedAt         DateTime?
+  reviewNote         String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  roleRequests RoleRequest[]
+
+  @@index([ownerId])
+  @@index([status])
+}
+
+/// Persistent World ID replay protection: one human per action, bound to one account.
+model WorldIdNullifier {
+  id            String   @id @default(cuid())
+  action        String
+  nullifierHash String
+  userId        String
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([action, nullifierHash])
+}
+
+/// Security & governance audit trail. Never stores tokens, proofs, or secrets.
+model AuditEvent {
+  id         String   @id @default(cuid())
+  actorId    String?  // null => system / operator CLI
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId])
+  @@index([targetType, targetId])
+}

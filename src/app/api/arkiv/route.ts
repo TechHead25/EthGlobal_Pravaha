@@ -4,6 +4,27 @@ import { getArkivServerWalletClient } from "@/lib/arkiv/config";
 import { ArkivEntityType } from "@/lib/arkiv/types";
 import { validateEntityPayload, validatePublicSuitability } from "@/lib/arkiv/validation";
 import { Hex } from "viem";
+import { can } from "@/lib/auth/roles";
+import { getPrincipal } from "@/server/session";
+import { clientIp, rateLimit } from "@/server/rate-limit";
+import { isSameOrigin } from "@/server/api";
+
+/**
+ * Writes spend the server's Arkiv signer and publish public records, so they require a
+ * signed-in NGO, vendor, validator, or administrator, a same-origin request, and a rate limit.
+ */
+async function authorizeWrite(req: NextRequest): Promise<NextResponse | null> {
+  if (!isSameOrigin(req)) {
+    return NextResponse.json({ success: false, error: "Cross-origin request rejected." }, { status: 403 });
+  }
+  const principal = await getPrincipal().catch(() => null);
+  if (!principal) return NextResponse.json({ success: false, error: "Sign in to write provenance records." }, { status: 401 });
+  const allowed = (["ngo:view", "vendor:view", "validator:view", "admin:view"] as const).some((p) => can(principal, p));
+  if (!allowed) return NextResponse.json({ success: false, error: "Your role cannot write provenance records." }, { status: 403 });
+  const rl = rateLimit(`arkiv:write:${principal.id ?? clientIp(req.headers)}`, 30, 60 * 60 * 1000);
+  if (!rl.allowed) return NextResponse.json({ success: false, error: "Too many requests." }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } });
+  return null;
+}
 
 /**
  * GET /api/arkiv
@@ -41,7 +62,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to query Arkiv Network",
+        error: "Failed to query Arkiv Network",
       },
       { status: 500 }
     );
@@ -55,6 +76,8 @@ export async function GET(req: NextRequest) {
  * Client browser writes should preferably be signed directly by the user's wallet.
  */
 export async function POST(req: NextRequest) {
+  const denied = await authorizeWrite(req);
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { type, payload } = body;
@@ -102,6 +125,8 @@ export async function POST(req: NextRequest) {
  * Server-assisted entity update.
  */
 export async function PATCH(req: NextRequest) {
+  const denied = await authorizeWrite(req);
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { id, type, updates } = body;

@@ -66,8 +66,9 @@ Traditional humanitarian and charitable aid systems suffer from severe opacity, 
 
 - **Smart Contracts:** Solidity (`^0.8.24`), OpenZeppelin Contracts v5.x (`SafeERC20`, `ReentrancyGuard`, `ECDSA`).
 - **Development & Testing:** Hardhat, TypeScript, Ethers.js v6 / Viem.
-- **Frontend Application:** Next.js (App Router), React, TypeScript, Tailwind CSS, Lucide Icons.
-- **Wallet & Chain Interaction:** Wagmi, Viem, RainbowKit (EVM compatible).
+- **Frontend Application:** Next.js 14 (App Router), React, TypeScript, Tailwind CSS design tokens, Radix UI primitives (shadcn-style components), Lucide Icons, Framer Motion, Sonner, React Hook Form + Zod, TanStack Table.
+- **Identity & Access:** Google OAuth via Auth.js v5, PostgreSQL (Prisma) role store with audited, admin-reviewed role requests. See [`docs/AUTH_SETUP.md`](./docs/AUTH_SETUP.md).
+- **Wallet & Chain Interaction:** ethers.js v6 with an injected EIP-1193 wallet on Arc Testnet.
 - **Decentralized Storage:** IPFS (via Pinata / Web3.Storage) for content-addressed evidence manifests.
 - **CI / CD Automation:** GitHub Actions.
 
@@ -105,6 +106,7 @@ All technical, security, and operational documentation is maintained under [`doc
 - [`docs/IMPLEMENTATION_PLAN.md`](./docs/IMPLEMENTATION_PLAN.md) — Granular implementation phases, task breakdown, dependencies, and Definition of Done.
 - [`docs/TEAM_WORKFLOW.md`](./docs/TEAM_WORKFLOW.md) — 5-person engineering team ownership matrix, GitHub branch strategy, PR reviews, and conflict handling.
 - [`docs/DEMO_SCRIPT.md`](./docs/DEMO_SCRIPT.md) — Deterministic, reproducible hackathon live demo script highlighting happy paths and failure recoveries.
+- [`docs/AUTH_SETUP.md`](./docs/AUTH_SETUP.md) — Google OAuth setup, role/permission matrix, database migrations, admin provisioning, and private API surface.
 - [`AGENTS.md`](./AGENTS.md) — Mandatory operational constraints and instructions for AI agents working in this repository.
 
 ---
@@ -126,7 +128,7 @@ All technical, security, and operational documentation is maintained under [`doc
    ```bash
    cp .env.example .env.local
    ```
-3. Update `.env.local` with local development or testnet parameters.
+3. Update `.env.local` with local development or testnet parameters. For sign-in, set `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, and `DATABASE_URL` (see [`docs/AUTH_SETUP.md`](./docs/AUTH_SETUP.md)), then run `npm run db:migrate`. Public pages work without them.
 
 ### Build and Test Execution (Post M1)
 When contract and frontend packages are initialized:
@@ -142,6 +144,9 @@ npx hardhat node
 
 # Run frontend development server
 npm run dev
+
+# Web app checks
+npm run lint && npm run typecheck && npm run test:auth && npm run build
 ```
 
 ---
