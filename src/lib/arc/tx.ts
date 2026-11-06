@@ -83,6 +83,9 @@ export function classifyTxError(err: unknown): { kind: TxErrorKind; message: str
     return { kind: "rpc", message: "The network RPC did not respond. Check the explorer before retrying." };
   }
   const msg = typeof e.shortMessage === "string" ? e.shortMessage : typeof e.message === "string" ? e.message : "";
+  if (msg.toLowerCase().includes("coalesce")) {
+    return { kind: "rpc", message: "RPC confirmation timed out, but the transaction was broadcast to Arc. Check the explorer." };
+  }
   return { kind: "unknown", message: msg ? msg.slice(0, 200) : "The transaction could not be completed." };
 }
 

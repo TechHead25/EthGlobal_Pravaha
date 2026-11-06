@@ -138,7 +138,21 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         const response = await send({ signer, escrow, usdc });
         setTx({ phase: "pending", label, hash: response.hash });
         toast.loading(`${label}: pending on Arc Testnet…`, { id: toastId, description: response.hash.slice(0, 18) + "…" });
-        const receipt = await response.wait(1);
+        let receipt: ethers.TransactionReceipt | null = null;
+        try {
+          receipt = await response.wait(1);
+        } catch (waitErr) {
+          // Fallback: If the wallet's RPC node throws "could not coalesce error" or times out,
+          // query the public readProvider directly using the known tx hash.
+          try {
+            receipt = await readProvider.waitForTransaction(response.hash, 1, 15000);
+          } catch {
+            receipt = await readProvider.getTransactionReceipt(response.hash);
+          }
+          if (!receipt) {
+            throw waitErr;
+          }
+        }
         if (!receipt || receipt.status !== 1) throw Object.assign(new Error("reverted"), { code: "CALL_EXCEPTION" });
         setTx({ phase: "confirmed", label, hash: response.hash });
         toast.success(`${label}: confirmed`, {
@@ -155,7 +169,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
     },
-    [address, isCorrectNetwork, escrowAddress]
+    [address, isCorrectNetwork, escrowAddress, readProvider]
   );
 
   const value: WalletContextValue = {

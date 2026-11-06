@@ -18,7 +18,8 @@ export const authConfig = {
   session: { strategy: "jwt", maxAge: 60 * 60 * 8, updateAge: 60 * 30 },
   providers: [
     Google({
-      // Reads AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET automatically.
+      clientId: process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET,
       authorization: { params: { prompt: "select_account" } },
     }),
   ],
@@ -34,5 +35,5 @@ export const authConfig = {
       return session;
     },
   },
-  trustHost: process.env.AUTH_TRUST_HOST === "true" || process.env.NODE_ENV !== "production",
+  trustHost: true,
 } satisfies NextAuthConfig;

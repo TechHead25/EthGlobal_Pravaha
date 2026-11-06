@@ -20,7 +20,7 @@ export const ARC_TESTNET_CONFIG = {
     process.env.NEXT_PUBLIC_BLOCK_EXPLORER || "https://testnet.arcscan.app",
   ],
   // Deployed OpenAidEscrow contract on Arc Testnet
-  defaultEscrowAddress: "0xe38151283e55077F621988679f2Cc524b785d236",
+  defaultEscrowAddress: "0xa69d35e8f64b733c1a3f290d2152026DaaCFe00B",
   // Official Arc Testnet USDC ERC-20 contract (6 decimals)
   defaultUsdcAddress: "0x3600000000000000000000000000000000000000",
   expectedUsdcDecimals: 6,
