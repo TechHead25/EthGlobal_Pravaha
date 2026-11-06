@@ -187,13 +187,31 @@ export function NgoNewCampaign({ organizationName }: { organizationName: string 
   };
 
   const onCreate = form.handleSubmit(async (v) => {
+    // Save metadata in client cache so the UI immediately shows the title & categories
+    const trimmedCid = v.metadataCid.trim();
+    try {
+      if (typeof window !== "undefined" && trimmedCid) {
+        localStorage.setItem(
+          `openaid_meta_${trimmedCid}`,
+          JSON.stringify({
+            title: v.title,
+            organization: organizationName ?? "",
+            category: meta.category,
+            urgency: meta.urgency,
+            region: meta.region,
+            description: meta.description,
+          })
+        );
+      }
+    } catch {}
+
     const budget = ethers.parseUnits(v.budgetUsdc, 6);
     const rec = await w.runTx("Create multi-vault campaign", ({ escrow }) =>
       escrow.createCampaign(
         budget,
         BigInt(Number(v.fundingDays) * DAY),
         BigInt(Number(v.deliveryDays) * DAY),
-        v.metadataCid
+        trimmedCid
       )
     );
     if (rec) {
