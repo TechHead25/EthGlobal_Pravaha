@@ -20,6 +20,11 @@ export interface CreWorkflowInput {
   requiredItemCount?: number;
   arkivEvidenceId?: string;
   carrierEndpointUrl?: string;
+  subVaultId?: number;
+  invoiceEndpointUrl?: string;
+  geminiSpecMatched?: boolean;
+  hasWorldIdReceipt?: boolean;
+  recipientNullifier?: string;
 }
 
 export type CarrierTrackingStatus = "DELIVERED" | "IN_TRANSIT" | "EXCEPTION" | "NOT_FOUND";
@@ -49,6 +54,7 @@ export interface GeofenceZone {
 
 export interface DonNodeVote {
   nodeId: string;
+  role?: string;
   isApproved: boolean;
   confidenceScore: number;
   reason: string;
@@ -68,6 +74,8 @@ export interface CreChecksBreakdown {
   carrierDeliveryConfirmed: boolean;
   itemCountSatisfied: boolean;
   geoCoordinatesInZone: boolean;
+  geminiSpecMatched?: boolean;
+  worldIdReceiptConfirmed?: boolean;
   donConsensusReached?: boolean;
 }
 
@@ -94,6 +102,7 @@ export interface CreVerificationResult {
     distanceKmFromCenter?: number;
   };
   donConsensus?: DonConsensusResult;
+  nodeVotes?: DonNodeVote[];
 }
 
 export interface CreExecutionOptions {
@@ -101,4 +110,6 @@ export interface CreExecutionOptions {
   nodeCount?: number;
   simulateFaultyNode?: boolean;
   requiredItemCountOverride?: number;
+  fetchFn?: typeof fetch;
+  invoiceVerifier?: (manifestCid: string, input: CreWorkflowInput) => Promise<boolean> | boolean;
 }

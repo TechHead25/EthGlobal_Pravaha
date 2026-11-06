@@ -1,8 +1,9 @@
 /**
  * @file workflow.ts
  * @notice Chainlink Runtime Environment (CRE) Delivery Evidence Verification Workflow.
- * Orchestrates off-chain logistics verification, carrier tracking, and spatial geofencing
- * across a Decentralized Oracle Network (DON) consensus layer.
+ * Orchestrates off-chain logistics verification, carrier tracking, spatial geofencing,
+ * Gemini AI invoice specification matching, and binary World ID recipient receipts
+ * across a 4-node Decentralized Oracle Network (DON) consensus layer.
  */
 
 import { carrierTrackingService } from "./carrier";
@@ -15,6 +16,7 @@ import {
   CreVerificationResult,
   CreWorkflowInput,
 } from "./types";
+import { recipientReceiptStore, computeSubCampaignId } from "../worldid/recipient-receipt";
 
 export * from "./types";
 
@@ -56,6 +58,8 @@ export class ChainlinkCreWorkflow {
           carrierDeliveryConfirmed: false,
           itemCountSatisfied: false,
           geoCoordinatesInZone: false,
+          geminiSpecMatched: false,
+          worldIdReceiptConfirmed: false,
           donConsensusReached: false,
         },
         attestationDigest: `cre_attest_failed_${fallbackCampaignId}_${timestamp}`,
@@ -100,28 +104,47 @@ export class ChainlinkCreWorkflow {
     );
     const geoCoordinatesInZone = geofenceResult.inZone;
 
-    // 3. Multi-Node DON Consensus Layer Execution
+    // Capability E: Gemini AI Invoice Extraction & Spec Matching Handshake
+    const geminiResult = await donConsensusEngine.verifyGeminiInvoiceSpec(
+      cleanInput,
+      requiredItems,
+      options
+    );
+    const geminiSpecMatched = geminiResult.matched;
+
+    // Capability F: Binary World ID Recipient Receipt Presence Handshake
+    const receiptResult = donConsensusEngine.verifyWorldIdReceiptPresence(cleanInput);
+    const worldIdReceiptConfirmed = receiptResult.present;
+
+    // 3. Multi-Node DON Consensus Layer Execution (3-of-4 BFT consensus)
     let donConsensusReached = true;
     let donDetails = undefined;
+    let nodeVotes = undefined;
     let finalScore = 0;
 
     if (mode === "DON_SIMULATION" || mode === "LIVE_DON") {
       const donResult = await donConsensusEngine.executeDonConsensus(cleanInput, {
         nodeCount: options?.nodeCount ?? 4,
         simulateFaultyNode: options?.simulateFaultyNode ?? false,
+        requiredItemCountOverride: requiredItems,
+        fetchFn: options?.fetchFn,
+        invoiceVerifier: options?.invoiceVerifier,
       });
 
       donConsensusReached = donResult.consensus.reached;
       donDetails = donResult.consensus;
+      nodeVotes = donResult.nodeVotes;
       finalScore = donResult.aggregatedScore;
     } else {
       // Local single-node scoring
       if (manifestIntegrity) finalScore += 25;
-      if (carrierDeliveryConfirmed) finalScore += 35;
-      if (itemCountSatisfied) finalScore += 20;
-      if (geoCoordinatesInZone) finalScore += 20;
+      if (carrierDeliveryConfirmed) finalScore += 25;
+      if (itemCountSatisfied) finalScore += 25;
+      if (geoCoordinatesInZone) finalScore += 25;
     }
 
+    // BFT Threshold Consensus Requirement:
+    // Requires 3-of-4 BFT consensus to recommend APPROVE to the human validator panel.
     const allPassed =
       manifestIntegrity &&
       carrierDeliveryConfirmed &&
@@ -135,7 +158,7 @@ export class ChainlinkCreWorkflow {
     const attestationDigest = `cre_attest_${cleanInput.campaignId}_${cidPrefix}_${timestamp}`;
 
     let recommendation: CreVerificationResult["recommendation"] = "APPROVE_FOR_HUMAN_REVIEW";
-    let reason = "All automated carrier, spatial, and delivery evidence checks passed.";
+    let reason = "3-of-4 DON consensus reached: automated carrier, spatial, Gemini spec, and World ID evidence approved.";
 
     if (!allPassed) {
       recommendation = "REJECT_ANOMALOUS_EVIDENCE";
@@ -162,6 +185,8 @@ export class ChainlinkCreWorkflow {
         carrierDeliveryConfirmed,
         itemCountSatisfied,
         geoCoordinatesInZone,
+        geminiSpecMatched,
+        worldIdReceiptConfirmed,
         donConsensusReached,
       },
       attestationDigest,
@@ -175,11 +200,12 @@ export class ChainlinkCreWorkflow {
         distanceKmFromCenter: geofenceResult.distanceKmFromCenter,
       },
       donConsensus: donDetails,
+      nodeVotes,
     };
   }
 
   /**
-   * Legacy helper for waybill checking (maintained for backwards compatibility).
+   * Helper for waybill checking (maintained for backwards compatibility).
    */
   public verifyCarrierWaybill(carrier: string, waybill: string): boolean {
     if (!carrier || !waybill) return false;

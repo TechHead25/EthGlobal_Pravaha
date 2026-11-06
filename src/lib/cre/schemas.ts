@@ -131,6 +131,11 @@ export function validateCreWorkflowInput(raw: unknown): ValidationResult<CreWork
     requiredItemCount: typeof input.requiredItemCount === "number" ? input.requiredItemCount : undefined,
     arkivEvidenceId: typeof input.arkivEvidenceId === "string" ? input.arkivEvidenceId.trim() : undefined,
     carrierEndpointUrl: typeof input.carrierEndpointUrl === "string" ? input.carrierEndpointUrl.trim() : undefined,
+    subVaultId: typeof input.subVaultId === "number" ? input.subVaultId : undefined,
+    invoiceEndpointUrl: typeof input.invoiceEndpointUrl === "string" ? input.invoiceEndpointUrl.trim() : undefined,
+    geminiSpecMatched: typeof input.geminiSpecMatched === "boolean" ? input.geminiSpecMatched : undefined,
+    hasWorldIdReceipt: typeof input.hasWorldIdReceipt === "boolean" ? input.hasWorldIdReceipt : undefined,
+    recipientNullifier: typeof input.recipientNullifier === "string" ? input.recipientNullifier.trim() : undefined,
   };
 
   return {
