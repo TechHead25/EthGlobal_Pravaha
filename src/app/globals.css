@@ -2,14 +2,123 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #0a0e17;
-  --foreground: #f3f4f6;
+/*
+ * OpenAid design tokens. HSL channels so Tailwind can apply alpha.
+ * Light (warm off-white) is the default product surface; "ink" is the
+ * deep midnight navy used for hero bands, the app sidebar, and dark panels.
+ */
+@layer base {
+  :root {
+    --background: 40 30% 97%;
+    --foreground: 222 40% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 40% 12%;
+    --muted: 40 18% 93%;
+    --muted-foreground: 218 14% 40%;
+    --border: 220 14% 87%;
+    --input: 220 14% 84%;
+    --ring: 168 64% 32%;
+
+    --primary: 222 47% 14%;
+    --primary-foreground: 40 30% 97%;
+    --secondary: 40 18% 92%;
+    --secondary-foreground: 222 40% 14%;
+
+    --verified: 166 70% 28%;
+    --verified-foreground: 0 0% 100%;
+    --verified-soft: 160 48% 93%;
+    --pending: 34 88% 38%;
+    --pending-foreground: 0 0% 100%;
+    --pending-soft: 42 90% 93%;
+    --destructive: 0 68% 44%;
+    --destructive-foreground: 0 0% 100%;
+    --destructive-soft: 0 80% 96%;
+
+    --ink-950: 224 52% 6%;
+    --ink-900: 223 45% 10%;
+    --ink-800: 222 38% 15%;
+    --ink-700: 221 30% 24%;
+
+    --radius: 0.75rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "cv11";
+  }
+
+  ::selection {
+    background: hsl(var(--verified) / 0.18);
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  min-height: 100vh;
+@layer components {
+  /* Translucent light surface. Use for cards that sit on a tinted backdrop. */
+  .glass {
+    @apply border border-white/70 bg-white/65 shadow-glass;
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+  }
+
+  /* Translucent dark surface for use on ink backgrounds. */
+  .glass-dark {
+    @apply border border-white/10 bg-white/[0.045] shadow-glass-dark;
+    backdrop-filter: blur(18px) saturate(130%);
+    -webkit-backdrop-filter: blur(18px) saturate(130%);
+  }
+
+  /* Solid surface — the default for dense data so blur is not stacked. */
+  .surface {
+    @apply rounded-lg border bg-card text-card-foreground shadow-[0_1px_2px_hsl(222_40%_12%/0.04)];
+  }
+
+  .eyebrow {
+    @apply text-[0.72rem] font-semibold uppercase tracking-[0.16em];
+  }
+
+  .ink-backdrop {
+    background:
+      radial-gradient(60rem 30rem at 85% -10%, hsl(168 70% 32% / 0.22), transparent 60%),
+      radial-gradient(50rem 28rem at -10% 10%, hsl(222 80% 50% / 0.16), transparent 60%),
+      hsl(var(--ink-950));
+  }
+
+  .paper-backdrop {
+    background:
+      radial-gradient(40rem 22rem at 100% 0%, hsl(168 60% 40% / 0.08), transparent 70%),
+      radial-gradient(36rem 20rem at 0% 100%, hsl(36 80% 60% / 0.08), transparent 70%),
+      hsl(var(--background));
+  }
+
+  .grid-lines {
+    background-image:
+      linear-gradient(hsl(0 0% 100% / 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(0 0% 100% / 0.04) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

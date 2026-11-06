@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { clientIp, rateLimit } from "../../../server/rate-limit";
 import { worldIdVerifier } from "../../../lib/worldid/verifier";
 import { WorldIdProofPayload, WorldIdVerifyRequestBody } from "../../../lib/worldid/types";
 
@@ -10,6 +11,10 @@ const SECURITY_HEADERS = {
 };
 
 export async function POST(req: NextRequest) {
+  const rl = rateLimit(`worldid:${clientIp(req.headers)}`, 20, 15 * 60 * 1000);
+  if (!rl.allowed) {
+    return NextResponse.json({ success: false, error: "Too many requests." }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds), "Cache-Control": "no-store" } });
+  }
   try {
     let body: WorldIdVerifyRequestBody;
     try {
@@ -116,7 +121,7 @@ export async function POST(req: NextRequest) {
         success: false,
         status: "verification-unavailable",
         error_code: "INTERNAL_ERROR",
-        error_message: error.message || "An unexpected error occurred during verification.",
+        error_message: "An unexpected error occurred during verification.",
         timestamp: new Date().toISOString(),
       },
       { status: 500, headers: SECURITY_HEADERS }
