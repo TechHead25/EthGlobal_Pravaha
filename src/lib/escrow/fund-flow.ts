@@ -43,7 +43,7 @@ export type MilestoneStatus = "not_applicable" | "locked" | "eligible" | "releas
 const sumArg = (events: readonly EscrowEvent[], name: string, arg: string, pred?: (e: EscrowEvent) => boolean) =>
   events.filter((e) => e.name === name && (!pred || pred(e))).reduce((s, e) => s + BigInt(e.args[arg] ?? "0"), 0n);
 
-const FAIL_STATES = new Set<number>([CampaignState.FundingFailed, CampaignState.AuctionFailed, CampaignState.DeliveryFailed, CampaignState.VerificationFailed]);
+const FAIL_STATES = new Set<number>([CampaignState.FundingFailed, CampaignState.AuctionFailed, CampaignState.DeliveryFailed, CampaignState.VerificationFailed, CampaignState.Cancelled]);
 
 export function computeFundFlow(c: CampaignView, events: readonly EscrowEvent[] = [], nowSec = Math.floor(Date.now() / 1000)): FundFlow {
   const own = events.filter((e) => e.campaignId === c.id);
@@ -132,7 +132,7 @@ export function utilizationBps(released: bigint, donated: bigint): number {
   return donated > 0n ? Number((released * 10000n) / donated) : 0;
 }
 
-const FULL_REFUND = new Set<number>([CampaignState.FundingFailed, CampaignState.AuctionFailed, CampaignState.DeliveryFailed, CampaignState.VerificationFailed]);
+const FULL_REFUND = new Set<number>([CampaignState.FundingFailed, CampaignState.AuctionFailed, CampaignState.DeliveryFailed, CampaignState.VerificationFailed, CampaignState.Cancelled]);
 
 /**
  * Estimate of what claimRefund would pay this donor, mirroring OpenAidEscrow.claimRefund.

@@ -4,6 +4,7 @@ import * as React from "react";
 import { ethers } from "ethers";
 import { ERC20_ABI, OPENAID_ESCROW_FULL_ABI } from "@/lib/arc/abis";
 import type { CampaignView } from "@/lib/escrow/types";
+import { escrowInterface } from "@/lib/escrow/reader";
 import { useWallet } from "@/components/wallet/wallet-provider";
 import { useEscrowLive } from "@/components/live/escrow-live";
 
@@ -209,4 +210,36 @@ export function useValidatorSet(addresses: readonly string[]) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, escrow]);
   return status;
+}
+
+export interface EscrowFeatures {
+  closeFundingEarly: boolean;
+  cancelCampaign: boolean;
+}
+
+/**
+ * Detects optional escrow functions by looking for their 4-byte selectors in the deployed
+ * bytecode's dispatcher. The live V1 escrow predates closeFundingEarly/cancelCampaign, so these
+ * resolve to false until an upgraded escrow is deployed and configured.
+ */
+export function useEscrowFeatures(): EscrowFeatures | null {
+  const { readProvider, escrowAddress } = useWallet();
+  const [features, setFeatures] = React.useState<EscrowFeatures | null>(null);
+  React.useEffect(() => {
+    let active = true;
+    readProvider
+      .getCode(escrowAddress)
+      .then((code) => {
+        const has = (name: string) => {
+          const fn = escrowInterface.getFunction(name);
+          return Boolean(fn && code.toLowerCase().includes(fn.selector.slice(2).toLowerCase()));
+        };
+        if (active) setFeatures({ closeFundingEarly: has("closeFundingEarly"), cancelCampaign: has("cancelCampaign") });
+      })
+      .catch(() => active && setFeatures({ closeFundingEarly: false, cancelCampaign: false }));
+    return () => {
+      active = false;
+    };
+  }, [readProvider, escrowAddress]);
+  return features;
 }

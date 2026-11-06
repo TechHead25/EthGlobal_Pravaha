@@ -96,6 +96,17 @@ describe("Shared fund-flow model", () => {
     expect(estimateRefund(campaign({ state: 11, totalDeposited: USDC(10_000).toString() }), USDC(1000), USDC(2000), false)).to.equal(USDC(200));
   });
 
+  it("cancelled campaigns open full refunds and keep funds in escrow until claimed", () => {
+    const c = campaign({ state: 13, totalDeposited: USDC(4500).toString() });
+    const f = computeFundFlow(c, [ev("CampaignCancelled", { creator: VENDOR, totalDepositedAtCancel: USDC(4500).toString() })]);
+    expect(f.refundsOpen).to.equal(true);
+    expect(f.inEscrow).to.equal(USDC(4500));
+    expect(estimateRefund(c, USDC(3000), 0n, false)).to.equal(USDC(3000));
+    expect(isActiveState(13)).to.equal(false);
+    expect(describeEvent(ev("CampaignCancelled", {})).title).to.match(/cancelled/i);
+    expect(describeEvent(ev("FundingClosedEarly", {})).title).to.match(/closed early/i);
+  });
+
   it("aggregates portfolios and utilization", () => {
     const a = computeFundFlow(campaign({ state: 0, totalDeposited: USDC(100).toString() }));
     const b = computeFundFlow(campaign({ id: 2, state: 11, winningVendor: VENDOR, winningBidAmount: USDC(100).toString(), totalDeposited: USDC(100).toString(), budgetCeiling: USDC(100).toString(), stage1Paid: true, stage2Paid: true }));

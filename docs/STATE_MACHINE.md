@@ -88,3 +88,22 @@ enum CampaignState {
 2. **Stage 2 Payment (30%):** **Conditional.** Held in escrow until the challenge window expires. Reversible only if a valid challenge is upheld by validator quorum before the deadline.
 3. **Auction Selection:** **Final.** Once `finalizeAuction()` executes, the winning vendor and bid amount are immutable.
 4. **Donor Refunds:** **Final.** Once claimed, tokens are withdrawn from the contract to the donor wallet.
+
+---
+
+## 5. Creator Campaign Controls (escrow upgrade — not yet deployed)
+
+Added to `contracts/core/OpenAidEscrow.sol` and covered by `test/OpenAidEscrow.creator-controls.test.ts`. The escrow currently deployed on Arc Testnet (`0xe381…d236`) predates these functions. The NGO dashboard detects them in the deployed bytecode and keeps the buttons disabled until an upgraded escrow is deployed and configured.
+
+| Function | Caller | Allowed from | Result |
+| --- | --- | --- | --- |
+| `closeFundingEarly(id)` | Campaign creator only | `FundingActive`, before `fundingDeadline`, with `totalDeposited > 0` | `budgetCeiling := totalDeposited`; state → `BiddingCommit`. Emits `FundingClosedEarly`, `CampaignFullyFunded`, `StateTransition`. Bids, the 5% bond, payouts and surplus are all computed on the reduced budget. |
+| `cancelCampaign(id)` | Campaign creator only | `FundingActive`, or `BiddingCommit` **before** `openAuction` (no vendor bonds held) | State → `Cancelled` (13, terminal). Emits `CampaignCancelled`, `StateTransition`. Donors pull 100% refunds via `claimRefund`. |
+
+Invariants preserved:
+- Neither function moves tokens. The creator never gains custody; funds still leave only to the winning vendor (after quorum) or back to donors.
+- `Cancelled` is terminal: deposits, early close, timeouts, auctions and a second cancel all revert with `InvalidState`.
+- Nothing is deleted on-chain. A cancelled campaign remains publicly auditable and is labelled "Cancelled by NGO".
+- Existing state numbers 0–12 are unchanged; `Cancelled = 13` is appended to the enum.
+
+Note: pro-rata surplus refunds use integer division, so up to 1 base unit (0.000001 USDC) of rounding dust per donor can remain in escrow. This is pre-existing `claimRefund` behaviour, and the new tests document it.

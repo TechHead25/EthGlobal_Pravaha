@@ -16,7 +16,8 @@ export enum CampaignState {
   InChallengePeriod = 9,    // 9: Stage 1 paid; 72h/demo timelock window open
   Disputed = 10,            // 10: Fraud challenge filed; Stage 2 locked
   Completed = 11,           // 11: Final settlement completed (30% disbursed or refunded)
-  Refunded = 12             // 12: Terminal refund state
+  Refunded = 12,            // 12: Terminal refund state
+  Cancelled = 13            // 13: Creator cancelled before procurement (upgraded escrow only)
 }
 
 export const CAMPAIGN_STATE_LABELS: Record<CampaignState, string> = {
@@ -33,6 +34,7 @@ export const CAMPAIGN_STATE_LABELS: Record<CampaignState, string> = {
   [CampaignState.Disputed]: "Disputed",
   [CampaignState.Completed]: "Completed",
   [CampaignState.Refunded]: "Refunded",
+  [CampaignState.Cancelled]: "Cancelled",
 };
 
 export interface OnChainCampaign {

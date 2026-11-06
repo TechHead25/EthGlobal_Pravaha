@@ -16,7 +16,7 @@ const STATUS_GROUPS: Record<string, { label: string; states: number[] }> = {
   procurement: { label: "Procurement", states: [2, 3] },
   delivery: { label: "Delivery & review", states: [5, 7] },
   settlement: { label: "Settlement", states: [9, 10, 11] },
-  refunds: { label: "Refund paths", states: [1, 4, 6, 8, 12] },
+  refunds: { label: "Refunds & cancelled", states: [1, 4, 6, 8, 12, 13] },
 };
 
 const URGENCY_TONE: Record<string, "failed" | "pending" | "info" | "neutral"> = { critical: "failed", high: "failed", medium: "pending", low: "info" };

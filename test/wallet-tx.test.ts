@@ -70,11 +70,12 @@ describe("Protocol presentation & data states", () => {
       CampaignState.AuctionFailed,
       CampaignState.DeliveryFailed,
       CampaignState.VerificationFailed,
+      CampaignState.Cancelled,
     ]);
   });
 
   it("every on-chain state has a presentation and failed states render as failed", () => {
-    for (let s = 0; s <= 12; s++) expect(presentState(s).label).to.be.a("string").and.not.match(/Unknown/);
+    for (let s = 0; s <= 13; s++) expect(presentState(s).label).to.be.a("string").and.not.match(/Unknown/);
     expect(presentState(99).label).to.match(/Unknown/);
     expect(lifecycleStatus(CampaignState.AuctionFailed, "procurement")).to.equal("failed");
     expect(lifecycleStatus(CampaignState.AuctionFailed, "funding")).to.equal("done");
