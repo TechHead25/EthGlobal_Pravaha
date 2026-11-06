@@ -15,8 +15,8 @@ export function getAuthConfigStatus(env: Record<string, string | undefined> = pr
 
   const secretConfigured = has("AUTH_SECRET") && env.AUTH_SECRET!.trim().length >= 32;
   if (!secretConfigured) missing.push("AUTH_SECRET");
-  const googleId = has("AUTH_GOOGLE_ID");
-  const googleSecret = has("AUTH_GOOGLE_SECRET");
+  const googleId = has("AUTH_GOOGLE_ID") || has("GOOGLE_CLIENT_ID");
+  const googleSecret = has("AUTH_GOOGLE_SECRET") || has("GOOGLE_CLIENT_SECRET");
   if (!googleId) missing.push("AUTH_GOOGLE_ID");
   if (!googleSecret) missing.push("AUTH_GOOGLE_SECRET");
   const databaseConfigured = has("DATABASE_URL") && /^postgres(ql)?:\/\//.test(env.DATABASE_URL!.trim());
