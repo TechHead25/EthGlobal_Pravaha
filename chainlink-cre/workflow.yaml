@@ -1,0 +1,36 @@
+name: openaid-delivery-verification
+version: 1.0.0
+description: Chainlink CRE workflow for humanitarian aid delivery evidence verification & cross-referencing
+runtime: wasm-v1
+entrypoint: workflow.ts
+
+triggers:
+  - id: http-delivery-evidence
+    type: http
+    config:
+      path: /verify-delivery
+      method: POST
+
+capabilities:
+  - id: http-carrier-gateway
+    type: http-client
+    config:
+      timeout: 10s
+      retry: 3
+  - id: evm-attestation-client
+    type: evm-client
+    config:
+      chain: arc-testnet
+      chainId: 5042002
+      contract: OpenAidEscrow
+
+consensus:
+  type: bft-threshold
+  threshold: "2/3"
+  aggregation: median-score
+
+authority:
+  scope: BOUNDED_ADVISORY
+  bypassQuorum: false
+  directSettlement: false
+  notes: "Produces advisory cryptographic attestation for the 3-of-5 human validator quorum. Cannot unilaterally move funds."
