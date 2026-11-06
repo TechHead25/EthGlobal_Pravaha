@@ -33,29 +33,36 @@ async function withFallback<T>(fn: (p: ethers.JsonRpcProvider) => Promise<T>): P
   }
 }
 
-const IPFS_GATEWAY = (process.env.NEXT_PUBLIC_IPFS_GATEWAY || "https://gateway.pinata.cloud/ipfs/").replace(/\/?$/, "/");
+const IPFS_GATEWAYS = [
+  (process.env.NEXT_PUBLIC_IPFS_GATEWAY || "https://gateway.pinata.cloud/ipfs/").replace(/\/?$/, "/"),
+  "https://ipfs.io/ipfs/",
+  "https://dweb.link/ipfs/",
+];
 
 async function fetchMetadata(cid: string): Promise<CampaignMetadata | null> {
   if (!/^[a-zA-Z0-9]{10,120}$/.test(cid)) return null;
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 3500);
-    const res = await fetch(`${IPFS_GATEWAY}${cid}`, { signal: ctrl.signal, next: { revalidate: 3600 } });
-    clearTimeout(t);
-    if (!res.ok) return null;
-    const raw = (await res.json()) as Record<string, unknown>;
-    const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : undefined);
-    return {
-      title: str(raw.title ?? raw.name, 140),
-      description: str(raw.description, 2000),
-      category: str(raw.category, 60),
-      urgency: str(raw.urgency, 30),
-      organization: str(raw.organization ?? raw.ngo, 120),
-      region: str(raw.region ?? raw.targetRegion, 120),
-    };
-  } catch {
-    return null;
+  for (const gw of IPFS_GATEWAYS) {
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 3000);
+      const res = await fetch(`${gw}${cid}`, { signal: ctrl.signal, next: { revalidate: 3600 } });
+      clearTimeout(t);
+      if (!res.ok) continue;
+      const raw = (await res.json()) as Record<string, unknown>;
+      const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max) : undefined);
+      return {
+        title: str(raw.title ?? raw.name, 140),
+        description: str(raw.description, 2000),
+        category: str(raw.category, 60),
+        urgency: str(raw.urgency, 30),
+        organization: str(raw.organization ?? raw.ngo, 120),
+        region: str(raw.region ?? raw.targetRegion, 120),
+      };
+    } catch {
+      continue;
+    }
   }
+  return null;
 }
 
 async function readCampaign(escrow: ethers.Contract, id: number): Promise<CampaignView | null> {
