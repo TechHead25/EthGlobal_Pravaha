@@ -36,7 +36,8 @@ contract OpenAidEscrow is ReentrancyGuard {
         InChallengePeriod,    // 9: Stage 1 paid; 72h/demo timelock window open
         Disputed,             // 10: Fraud challenge filed; Stage 2 locked
         Completed,            // 11: Final settlement completed (30% disbursed or refunded)
-        Refunded              // 12: Terminal refund state
+        Refunded,             // 12: Terminal refund state
+        Cancelled             // 13: Creator cancelled before procurement; full donor refunds
     }
 
     struct Campaign {
@@ -121,6 +122,8 @@ contract OpenAidEscrow is ReentrancyGuard {
     event DisputeRaised(uint256 indexed campaignId, address indexed challenger, string counterEvidenceCid);
     event DisputeResolved(uint256 indexed campaignId, bool upheld);
     event RefundClaimed(uint256 indexed campaignId, address indexed donor, uint256 amount);
+    event FundingClosedEarly(uint256 indexed campaignId, uint256 previousBudgetCeiling, uint256 finalBudget);
+    event CampaignCancelled(uint256 indexed campaignId, address indexed creator, uint256 totalDepositedAtCancel);
     event StateTransition(uint256 indexed campaignId, CampaignState previousState, CampaignState newState);
 
     // --- CUSTOM ERRORS ---
@@ -247,6 +250,52 @@ contract OpenAidEscrow is ReentrancyGuard {
 
         c.state = CampaignState.FundingFailed;
         emit StateTransition(campaignId, CampaignState.FundingActive, CampaignState.FundingFailed);
+    }
+
+    // --- CREATOR CAMPAIGN CONTROLS ---
+
+    /**
+     * @notice Creator ends the funding phase before the deadline and proceeds to procurement
+     *         with the amount raised so far. The budget ceiling is lowered to totalDeposited, so
+     *         bids, bonds, payouts and surplus refunds are all computed on what donors actually gave.
+     * @dev No tokens move. Funds remain escrowed and can still only reach the winning vendor
+     *      (after validator quorum) or return to donors — the creator gains no custody.
+     */
+    function closeFundingEarly(uint256 campaignId) external {
+        Campaign storage c = campaigns[campaignId];
+        if (msg.sender != c.creator) revert Unauthorized();
+        if (c.state != CampaignState.FundingActive) revert InvalidState(c.state, CampaignState.FundingActive);
+        if (block.timestamp > c.fundingDeadline) revert DeadlinePassed();
+        if (c.totalDeposited == 0) revert ZeroAmount();
+
+        uint256 previousCeiling = c.budgetCeiling;
+        c.budgetCeiling = c.totalDeposited;
+        c.state = CampaignState.BiddingCommit;
+
+        emit FundingClosedEarly(campaignId, previousCeiling, c.totalDeposited);
+        emit CampaignFullyFunded(campaignId, c.totalDeposited);
+        emit StateTransition(campaignId, CampaignState.FundingActive, CampaignState.BiddingCommit);
+    }
+
+    /**
+     * @notice Creator cancels a campaign before any vendor has posted a bond. Every donor can then
+     *         pull a 100% refund via claimRefund. On-chain history is preserved (nothing is deleted).
+     * @dev Allowed while FundingActive, or in BiddingCommit before openAuction (no bonds held).
+     *      No tokens move here; refunds are pull-based.
+     */
+    function cancelCampaign(uint256 campaignId) external {
+        Campaign storage c = campaigns[campaignId];
+        if (msg.sender != c.creator) revert Unauthorized();
+        CampaignState previous = c.state;
+        bool cancellable =
+            previous == CampaignState.FundingActive ||
+            (previous == CampaignState.BiddingCommit && commitDeadlines[campaignId] == 0);
+        if (!cancellable) revert InvalidState(previous, CampaignState.FundingActive);
+
+        c.state = CampaignState.Cancelled;
+
+        emit CampaignCancelled(campaignId, msg.sender, c.totalDeposited);
+        emit StateTransition(campaignId, previous, CampaignState.Cancelled);
     }
 
     // --- PROCUREMENT AUCTION (COMMIT–REVEAL) ---
@@ -574,7 +623,8 @@ contract OpenAidEscrow is ReentrancyGuard {
             c.state == CampaignState.FundingFailed ||
             c.state == CampaignState.AuctionFailed ||
             c.state == CampaignState.DeliveryFailed ||
-            c.state == CampaignState.VerificationFailed
+            c.state == CampaignState.VerificationFailed ||
+            c.state == CampaignState.Cancelled
         ) {
             // 100% full refund
             refundAmount = deposit;

@@ -16,6 +16,7 @@ export const STATE_PRESENTATION: Record<number, { label: string; tone: BadgeTone
   [CampaignState.Disputed]: { label: "Disputed", tone: "disputed", phase: "settlement" },
   [CampaignState.Completed]: { label: "Completed", tone: "completed", phase: "settlement" },
   [CampaignState.Refunded]: { label: "Refunded", tone: "completed", phase: "settlement" },
+  [CampaignState.Cancelled]: { label: "Cancelled by NGO · refunds open", tone: "failed", phase: "funding" },
 };
 
 export function presentState(state: number) {
@@ -37,6 +38,7 @@ export const FULL_REFUND_STATES = new Set<number>([
   CampaignState.AuctionFailed,
   CampaignState.DeliveryFailed,
   CampaignState.VerificationFailed,
+  CampaignState.Cancelled,
 ]);
 
 export function lifecycleStatus(state: number, phase: LifecyclePhase): "done" | "current" | "upcoming" | "failed" {

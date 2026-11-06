@@ -15,6 +15,8 @@ export const EVENT_DESCRIPTORS: Record<string, ActivityDescriptor> = {
   CampaignCreated: { title: "Campaign created", category: "funding", tone: "info", amountArg: "budgetCeiling", actorArg: "creator" },
   FundsDeposited: { title: "Donation received", category: "funding", tone: "verified", amountArg: "amount", actorArg: "donor" },
   CampaignFullyFunded: { title: "Fully funded", category: "funding", tone: "verified", amountArg: "totalAmount" },
+  FundingClosedEarly: { title: "Funding closed early by NGO", category: "funding", tone: "info", amountArg: "finalBudget" },
+  CampaignCancelled: { title: "Campaign cancelled by NGO", category: "refund", tone: "failed", amountArg: "totalDepositedAtCancel", actorArg: "creator" },
   AuctionOpened: { title: "Procurement opened", category: "procurement", tone: "info" },
   BidCommitted: { title: "Sealed bid committed", category: "procurement", tone: "info", amountArg: "bondAmount", actorArg: "vendor" },
   BidRevealed: { title: "Bid revealed", category: "procurement", tone: "info", amountArg: "amount", actorArg: "vendor" },

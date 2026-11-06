@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Gavel, Inbox, MapPin, Pencil, Siren, Timer } from "lucide-react";
+import { Ban, Gavel, Inbox, MapPin, Pencil, Siren, StopCircle, Timer } from "lucide-react";
 import { useEscrowLive } from "@/components/live/escrow-live";
 import { useWallet } from "@/components/wallet/wallet-provider";
 import { TxStatus, WalletPanel } from "@/components/wallet/wallet-panel";
@@ -12,10 +12,11 @@ import { FundFlowDiagram } from "@/components/dashboard/fund-flow";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/dialog";
-import { EmptyState, Progress, Timeline } from "@/components/ui/primitives";
+import { EmptyState, Notice, Progress, Timeline } from "@/components/ui/primitives";
+import { useEscrowFeatures } from "@/components/dashboard/hooks";
 import { computeFundFlow } from "@/lib/escrow/fund-flow";
 import { LIFECYCLE, lifecycleStatus } from "@/lib/protocol";
-import { formatDateTime, formatTokenAmount, percent } from "@/lib/utils";
+import { formatDateTime, formatTokenAmount, percent, shortAddress } from "@/lib/utils";
 import { ConnectCreatorWallet, DAY, useMyCampaigns, useNgoActions } from "./shared";
 
 export function NgoCampaigns({ timingMode }: { timingMode: "DEMO" | "PRODUCTION" }) {
@@ -23,6 +24,8 @@ export function NgoCampaigns({ timingMode }: { timingMode: "DEMO" | "PRODUCTION"
   const live = useEscrowLive();
   const mine = useMyCampaigns();
   const act = useNgoActions();
+  const features = useEscrowFeatures();
+  const unsupported = features !== null && (!features.closeFundingEarly || !features.cancelCampaign);
   const [expanded, setExpanded] = React.useState<number | null>(null);
   const now = Math.floor(Date.now() / 1000);
   const durations = timingMode === "DEMO" ? { commit: 15 * 60, reveal: 15 * 60 } : { commit: 3 * DAY, reveal: 2 * DAY };
@@ -37,6 +40,11 @@ export function NgoCampaigns({ timingMode }: { timingMode: "DEMO" | "PRODUCTION"
       />
       <WalletPanel purpose="Campaigns are matched to the creator wallet." />
       <TxStatus />
+      {unsupported ? (
+        <Notice tone="warning" title="End funding early & cancel need the upgraded escrow">
+          These buttons are ready, but the escrow currently in use ({shortAddress(w.escrowAddress, 6)}) was deployed before closeFundingEarly and cancelCampaign existed, so they stay disabled. They switch on automatically once an escrow with these functions is deployed and configured.
+        </Notice>
+      ) : null}
       {!w.address ? (
         <ConnectCreatorWallet />
       ) : mine.length === 0 ? (
@@ -61,6 +69,52 @@ export function NgoCampaigns({ timingMode }: { timingMode: "DEMO" | "PRODUCTION"
                   description={`Commit window ${durations.commit / 60} min, reveal window ${durations.reveal / 60} min (${timingMode} timing). Cannot be changed after opening.`}
                   confirmLabel="Open in wallet"
                   onConfirm={async () => void (await act(`Open auction #${c.id}`, c.id, (x) => x.openAuction(c.id, durations.commit, durations.reveal)))}
+                />
+              );
+            const fundingOpen = c.state === 0 && now <= c.fundingDeadline;
+            if (fundingOpen)
+              actions.push(
+                <ConfirmDialog
+                  key="close-early"
+                  disabled={!features?.closeFundingEarly || raised === 0n}
+                  trigger={
+                    <Button size="sm" variant="outline" disabled={!features?.closeFundingEarly || raised === 0n} title={raised === 0n ? "No donations yet — cancel the campaign instead" : undefined}>
+                      <StopCircle aria-hidden /> End funding now
+                    </Button>
+                  }
+                  title={`End funding early for #${c.id}?`}
+                  description={
+                    <div className="space-y-2">
+                      <p>
+                        Donations stop now and the budget becomes the <strong>{formatTokenAmount(raised)} USDC</strong> raised so far (was {formatTokenAmount(budget)} USDC). The campaign moves straight to procurement.
+                      </p>
+                      <p>Vendor bids and bonds are capped at the new budget. Funds stay in escrow — they still go only to the winning vendor after validator approval, or back to donors. This cannot be undone.</p>
+                    </div>
+                  }
+                  confirmLabel="End funding in wallet"
+                  onConfirm={async () => void (await act(`End funding early #${c.id}`, c.id, (x) => x.closeFundingEarly(c.id)))}
+                />
+              );
+            if (c.state === 0 || (c.state === 2 && c.commitDeadline === 0))
+              actions.push(
+                <ConfirmDialog
+                  key="cancel"
+                  disabled={!features?.cancelCampaign}
+                  trigger={
+                    <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive-soft" disabled={!features?.cancelCampaign}>
+                      <Ban aria-hidden /> Cancel campaign
+                    </Button>
+                  }
+                  title={`Cancel campaign #${c.id}?`}
+                  tone="destructive"
+                  description={
+                    <div className="space-y-2">
+                      <p>The campaign ends permanently. {raised > 0n ? <>Every donor can reclaim 100% of their deposit ({formatTokenAmount(raised)} USDC in total) from their own wallet.</> : <>No donations have been made.</>}</p>
+                      <p>Nothing can be erased from a blockchain: the campaign stays in the public record, marked “Cancelled by NGO”. You do not receive any funds.</p>
+                    </div>
+                  }
+                  confirmLabel="Cancel in wallet"
+                  onConfirm={async () => void (await act(`Cancel campaign #${c.id}`, c.id, (x) => x.cancelCampaign(c.id)))}
                 />
               );
             if (c.state === 5 && now > c.deliveryDeadline)
