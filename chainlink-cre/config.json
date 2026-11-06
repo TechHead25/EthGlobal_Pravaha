@@ -1,16 +1,41 @@
 {
   "name": "openaid-delivery-verification",
   "version": "1.0.0",
-  "description": "Chainlink CRE workflow for humanitarian delivery evidence verification",
+  "description": "Chainlink CRE workflow for humanitarian aid delivery evidence verification",
+  "runtime": "wasm-v1",
   "entrypoint": "workflow.ts",
-  "trigger": {
-    "type": "HTTP",
-    "endpoint": "/verify-delivery"
-  },
+  "triggers": [
+    {
+      "type": "HTTP",
+      "endpoint": "/verify-delivery",
+      "method": "POST"
+    }
+  ],
+  "capabilities": [
+    {
+      "name": "HTTPClient",
+      "description": "Queries external logistics carrier tracking endpoints"
+    },
+    {
+      "name": "SpatialGeofencing",
+      "description": "Validates delivery GPS coordinates against disaster relief perimeters"
+    },
+    {
+      "name": "ManifestValidator",
+      "description": "Validates IPFS CID integrity and Arkiv metadata references"
+    }
+  ],
   "consensus": {
     "type": "DON_THRESHOLD",
-    "threshold": "2/3"
+    "threshold": "2/3",
+    "aggregation": "median-confidence-score"
   },
   "targetNetwork": "Arc-Testnet",
-  "authorityScope": "BOUNDED_ADVISORY"
+  "chainId": 5042002,
+  "authorityScope": "BOUNDED_ADVISORY",
+  "trustBoundary": {
+    "canDisburseFunds": false,
+    "canBypassValidatorQuorum": false,
+    "onChainSettlementEnforcedBy": "OpenAidEscrow.sol (3-of-5 validator quorum)"
+  }
 }
