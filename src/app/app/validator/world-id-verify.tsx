@@ -32,6 +32,11 @@ export default function WorldIdVerify({ appId, action, signal, level }: { appId:
       app_id={appId}
       action={action}
       signal={signal}
+      environment={
+        process.env.NEXT_PUBLIC_WORLD_ID_ENVIRONMENT === "production"
+          ? "production"
+          : "staging"
+      }
       verification_level={level === "orb" ? VerificationLevel.Orb : VerificationLevel.Device}
       handleVerify={handleVerify}
       onSuccess={() => {
