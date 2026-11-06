@@ -5,6 +5,7 @@ import { Logo } from "@/components/brand/logo";
 import { Button } from "@/components/ui/button";
 import { MobileSiteNav } from "./mobile-site-nav";
 import { SiteNavLinks } from "./site-nav-links";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 export const SITE_LINKS = [
   { href: "/#product", label: "Product" },
@@ -50,6 +51,7 @@ export async function SiteHeader({ tone = "dark" }: { tone?: "dark" | "light" })
               </Button>
             </>
           )}
+          <ThemeToggle onInk={dark} />
           <MobileSiteNav links={SITE_LINKS} signedIn={Boolean(principal)} tone={tone} />
         </div>
       </div>

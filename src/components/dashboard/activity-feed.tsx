@@ -12,7 +12,7 @@ import { EmptyState } from "@/components/ui/primitives";
 const DOT: Record<ActivityDescriptor["tone"], string> = {
   verified: "bg-verified",
   pending: "bg-pending",
-  info: "bg-sky-600",
+  info: "bg-info",
   failed: "bg-destructive",
   neutral: "bg-muted-foreground/40",
 };

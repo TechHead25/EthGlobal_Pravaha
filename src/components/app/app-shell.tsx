@@ -38,6 +38,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { activeChild, BREADCRUMB_LABELS, type NavIconName, type NavSection } from "./nav-config";
 
 const ICONS: Record<NavIconName, LucideIcon> = {
@@ -209,6 +210,7 @@ export function AppShell({
 
           <form ref={signOutFormRef} action={signOutAction} className="hidden" aria-hidden />
           <div className="ml-auto flex items-center gap-1.5">
+            <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative" aria-label={`Notifications (${notifications.length})`}>
@@ -236,7 +238,7 @@ export function AppShell({
                               n.tone === "verified" && "bg-verified",
                               n.tone === "pending" && "bg-pending",
                               n.tone === "failed" && "bg-destructive",
-                              n.tone === "info" && "bg-sky-600"
+                              n.tone === "info" && "bg-info"
                             )}
                             aria-hidden
                           />

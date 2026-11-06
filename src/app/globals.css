@@ -33,6 +33,9 @@
     --destructive: 0 68% 44%;
     --destructive-foreground: 0 0% 100%;
     --destructive-soft: 0 80% 96%;
+    --info: 200 75% 30%;
+    --info-soft: 200 80% 96%;
+    --warning-text: 30 70% 25%;
 
     --ink-950: 224 52% 6%;
     --ink-900: 223 45% 10%;
@@ -40,6 +43,43 @@
     --ink-700: 221 30% 24%;
 
     --radius: 0.75rem;
+    color-scheme: light;
+  }
+
+  /*
+   * Dark theme. Same token names, so every component adapts without per-component overrides.
+   * The "ink" surfaces (hero bands, sidebar, footer) are already dark and stay unchanged.
+   */
+  .dark {
+    --background: 224 32% 7%;
+    --foreground: 40 20% 93%;
+    --card: 223 28% 10.5%;
+    --card-foreground: 40 20% 93%;
+    --muted: 222 24% 15%;
+    --muted-foreground: 218 14% 66%;
+    --border: 222 20% 19%;
+    --input: 222 18% 25%;
+    --ring: 166 60% 48%;
+
+    --primary: 40 25% 93%;
+    --primary-foreground: 224 40% 10%;
+    --secondary: 222 24% 16%;
+    --secondary-foreground: 40 20% 92%;
+
+    --verified: 163 58% 47%;
+    --verified-foreground: 224 45% 8%;
+    --verified-soft: 165 45% 13%;
+    --pending: 38 88% 60%;
+    --pending-foreground: 224 45% 8%;
+    --pending-soft: 35 55% 13%;
+    --destructive: 0 78% 64%;
+    --destructive-foreground: 224 45% 8%;
+    --destructive-soft: 0 45% 14%;
+    --info: 200 80% 66%;
+    --info-soft: 205 55% 14%;
+    --warning-text: 38 88% 72%;
+
+    color-scheme: dark;
   }
 
   * {
@@ -68,7 +108,7 @@
 @layer components {
   /* Translucent light surface. Use for cards that sit on a tinted backdrop. */
   .glass {
-    @apply border border-white/70 bg-white/65 shadow-glass;
+    @apply border border-white/70 bg-white/65 shadow-glass dark:border-white/[0.08] dark:bg-card/60;
     backdrop-filter: blur(16px) saturate(140%);
     -webkit-backdrop-filter: blur(16px) saturate(140%);
   }
@@ -82,7 +122,7 @@
 
   /* Solid surface — the default for dense data so blur is not stacked. */
   .surface {
-    @apply rounded-lg border bg-card text-card-foreground shadow-[0_1px_2px_hsl(222_40%_12%/0.04)];
+    @apply rounded-lg border bg-card text-card-foreground shadow-[0_1px_2px_hsl(222_40%_12%/0.04)] dark:shadow-[0_1px_2px_hsl(0_0%_0%/0.3)];
   }
 
   .eyebrow {

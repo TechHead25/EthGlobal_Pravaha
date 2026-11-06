@@ -1,4 +1,5 @@
 import { Logo } from "@/components/brand/logo";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -15,7 +16,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </ul>
         </div>
       </section>
-      <section className="paper-backdrop flex flex-col px-5 py-8 sm:px-10">
+      <section className="paper-backdrop relative flex flex-col px-5 py-8 sm:px-10">
+        <div className="absolute right-4 top-4"><ThemeToggle /></div>
         <Logo className="lg:hidden" />
         <div className="m-auto w-full max-w-sm py-10">{children}</div>
       </section>
