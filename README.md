@@ -8,6 +8,12 @@
 
 > **A decentralized charitable procurement and staged settlement protocol separating custody, procurement, verification, and settlement to eliminate single points of trust in humanitarian aid.**
 
+> [!IMPORTANT]
+> **ETHGlobal Mumbai Judges & Partner Track Reviewers:**  
+> For comprehensive architectural breakdowns, live contract addresses on ArcScan, code maps, and step-by-step terminal verification commands for **Arc**, **World**, **Arkiv**, and **Chainlink CRE**, see:  
+> 📑 **[`docs/PARTNER_VERIFICATION_GUIDE.md`](./docs/PARTNER_VERIFICATION_GUIDE.md)**  
+> Verify all 99 automated partner tests in seconds: `npm run test:partners`
+
 ---
 
 ## 1. Executive Overview
@@ -91,6 +97,7 @@ Traditional humanitarian and charitable aid systems suffer from severe opacity, 
 
 All technical, security, and operational documentation is maintained under [`docs/`](./docs/):
 
+- **[`docs/PARTNER_VERIFICATION_GUIDE.md`](./docs/PARTNER_VERIFICATION_GUIDE.md)** — **Primary Hackathon Partner Verification Manual: Arc, World, Arkiv, and Chainlink CRE audits, testing commands, and invariants.**
 - [`docs/PROJECT_BRIEF.md`](./docs/PROJECT_BRIEF.md) — High-level vision, problem statement, target audiences, and core value proposition.
 - [`docs/PRD.md`](./docs/PRD.md) — Product Requirements Document: functional/non-functional specs, user stories, acceptance criteria (`FR-xxx`, `NFR-xxx`).
 - [`docs/SUCCESS_CRITERIA.md`](./docs/SUCCESS_CRITERIA.md) — Measurable hackathon demo acceptance conditions and demo rubric alignment.
