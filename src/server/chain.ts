@@ -66,9 +66,13 @@ async function fetchMetadata(cid: string): Promise<CampaignMetadata | null> {
 }
 
 async function readCampaign(escrow: ethers.Contract, id: number): Promise<CampaignView | null> {
-  const core = await readCampaignCore(escrow, id);
-  if (!core) return null;
-  return { ...core, metadata: await fetchMetadata(core.metadataCid) };
+  try {
+    const core = await readCampaignCore(escrow, id);
+    if (!core) return null;
+    return { ...core, metadata: await fetchMetadata(core.metadataCid) };
+  } catch {
+    return null;
+  }
 }
 
 const MAX_CAMPAIGNS = 60;
@@ -91,12 +95,16 @@ async function loadCampaigns(): Promise<ChainRead<CampaignsSnapshot>> {
         return { status: "unavailable" as const, reason: "No contract bytecode at the configured escrow address.", readAt };
       }
       const escrow = new ethers.Contract(escrowAddress, OPENAID_ESCROW_FULL_ABI, p);
-      const [countRaw, usdcAddr, blockNumber] = await Promise.all([escrow.campaignCount(), escrow.usdcToken(), p.getBlockNumber()]);
+      const [countRaw, usdcAddr, blockNumber] = await Promise.all([
+        escrow.campaignCount().catch(() => 0n),
+        escrow.usdcToken().catch(() => ARC_TESTNET_CONFIG.defaultUsdcAddress),
+        p.getBlockNumber().catch(() => 0),
+      ]);
       const count = Number(countRaw);
       const usdc = new ethers.Contract(usdcAddr, ["function balanceOf(address) view returns (uint256)"], p);
-      const balance: bigint = await usdc.balanceOf(escrowAddress);
+      const balance: bigint = await usdc.balanceOf(escrowAddress).catch(() => 0n);
       const ids = Array.from({ length: Math.min(count, MAX_CAMPAIGNS) }, (_, i) => count - i);
-      const campaigns = (await Promise.all(ids.map((id) => readCampaign(escrow, id)))).filter(Boolean) as CampaignView[];
+      const campaigns = (await Promise.all(ids.map((id) => readCampaign(escrow, id).catch(() => null)))).filter(Boolean) as CampaignView[];
       return { status: "ok" as const, readAt, data: { campaigns, campaignCount: count, escrowBalance: balance.toString(), escrowAddress, blockNumber } };
     });
   } catch {

@@ -26,6 +26,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy",
     "db:migrate:dev": "prisma migrate dev",
+    "seed:arkiv": "tsx scripts/seed-arkiv.ts",
     "admin:grant": "tsx scripts/grant-admin.ts",
     "test:db": "mocha -r ts-node/register test/prisma-store.integration.test.ts"
   },

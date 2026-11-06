@@ -11,40 +11,44 @@ import type { CampaignView, EscrowEvent } from "./types";
 export const escrowInterface = new ethers.Interface(OPENAID_ESCROW_FULL_ABI);
 
 export async function readCampaignCore(escrow: ethers.Contract, id: number): Promise<Omit<CampaignView, "metadata"> | null> {
-  const [c, commitDeadline, revealDeadline, vendors] = await Promise.all([
-    escrow.getCampaign(id),
-    escrow.commitDeadlines(id),
-    escrow.revealDeadlines(id),
-    escrow.getVendors(id),
-  ]);
-  if (!c || c.budgetCeiling === 0n) return null;
-  const state = Number(c.state) as CampaignState;
-  return {
-    id: Number(c.id),
-    creator: c.creator,
-    budgetCeiling: c.budgetCeiling.toString(),
-    totalDeposited: c.totalDeposited.toString(),
-    fundingDeadline: Number(c.fundingDeadline),
-    deliveryDeadline: Number(c.deliveryDeadline),
-    metadataCid: c.metadataCid,
-    state,
-    stateLabel: CAMPAIGN_STATE_LABELS[state] ?? `State ${state}`,
-    winningVendor: c.winningVendor,
-    winningBidAmount: c.winningBidAmount.toString(),
-    evidenceIpfsCid: c.evidenceIpfsCid,
-    evidenceSubmittedAt: Number(c.evidenceSubmittedAt),
-    affirmativeVotes: Number(c.affirmativeVotes),
-    negativeVotes: Number(c.negativeVotes),
-    stage1Paid: Boolean(c.stage1Paid),
-    stage2Paid: Boolean(c.stage2Paid),
-    challengeExpiry: Number(c.challengeExpiry),
-    isDisputed: Boolean(c.isDisputed),
-    disputeEvidenceCid: c.disputeEvidenceCid,
-    challenger: c.challenger,
-    commitDeadline: Number(commitDeadline),
-    revealDeadline: Number(revealDeadline),
-    vendorCount: (vendors as string[]).length,
-  };
+  try {
+    const [c, commitDeadline, revealDeadline, vendors] = await Promise.all([
+      escrow.getCampaign(id),
+      escrow.commitDeadlines(id).catch(() => 0n),
+      escrow.revealDeadlines(id).catch(() => 0n),
+      escrow.getVendors(id).catch(() => []),
+    ]);
+    if (!c || c.budgetCeiling === 0n) return null;
+    const state = Number(c.state) as CampaignState;
+    return {
+      id: Number(c.id),
+      creator: c.creator,
+      budgetCeiling: c.budgetCeiling.toString(),
+      totalDeposited: c.totalDeposited.toString(),
+      fundingDeadline: Number(c.fundingDeadline),
+      deliveryDeadline: Number(c.deliveryDeadline),
+      metadataCid: c.metadataCid,
+      state,
+      stateLabel: CAMPAIGN_STATE_LABELS[state] ?? `State ${state}`,
+      winningVendor: c.winningVendor,
+      winningBidAmount: c.winningBidAmount.toString(),
+      evidenceIpfsCid: c.evidenceIpfsCid,
+      evidenceSubmittedAt: Number(c.evidenceSubmittedAt),
+      affirmativeVotes: Number(c.affirmativeVotes),
+      negativeVotes: Number(c.negativeVotes),
+      stage1Paid: Boolean(c.stage1Paid),
+      stage2Paid: Boolean(c.stage2Paid),
+      challengeExpiry: Number(c.challengeExpiry),
+      isDisputed: Boolean(c.isDisputed),
+      disputeEvidenceCid: c.disputeEvidenceCid,
+      challenger: c.challenger,
+      commitDeadline: Number(commitDeadline),
+      revealDeadline: Number(revealDeadline),
+      vendorCount: Array.isArray(vendors) ? vendors.length : 0,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /** Parses raw escrow logs into normalized, dedupe-keyed events (unknown logs are skipped). */

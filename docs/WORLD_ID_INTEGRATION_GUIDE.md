@@ -208,10 +208,33 @@ The route supports both standard IDKit widget responses (nested) and flat payloa
 
 ## 7. Security Invariants Verified by Tests
 
-The test suite in [`test/worldid.test.ts`](file:///home/abhinav/Desktop/EthGlobal_Pravaha/test/worldid.test.ts) exercises:
+The test suite in [`test/worldid.test.ts`](file:///c:/Users/suyas/OneDrive/Desktop/pravaha/EthGlobal_Pravaha/test/worldid.test.ts) and [`test/validator-selection.test.ts`](file:///c:/Users/suyas/OneDrive/Desktop/pravaha/EthGlobal_Pravaha/test/validator-selection.test.ts) exercises:
 1. **BN254 Scalar Field Adherence:** Rejects non-hex, empty, and out-of-field elements $\ge r$.
 2. **Action Binding:** Rejects proof if caller context differs from expected action.
 3. **Nullifier Replay Protection:** Prevents duplicate voting with identical nullifier for an action.
 4. **Fail-Closed Guarantees:** Upstream timeouts (via `AbortSignal`) and 5xx errors return `verification-unavailable`, never converting a failure into success.
 5. **No Client Spoofing:** Forged client claims (`{ "success": true }`) without valid cryptographic verification are rejected.
 6. **Security Headers:** Enforces `Cache-Control: no-store, no-cache, must-revalidate` and `X-Content-Type-Options: nosniff`.
+
+---
+
+## 8. Integration Debrief & Developer Feedback (ETHGlobal Mumbai Track Requirements)
+
+### 1. Time to First Success
+- **Setup Time:** ~35 minutes from initial Worldcoin Developer Portal staging app registration to successfully executing our first end-to-end ZK proof roundtrip through the Next.js API verifier using the World ID Simulator.
+- **Key Enabler:** The cloud-hosted World ID Simulator (`simulator.worldcoin.org`) was indispensable for rapid developer prototyping without requiring physical Orb hardware on the hackathon floor.
+
+### 2. Integration Friction Points Encountered
+1. **Field Element Bounds in TypeScript:**
+   - *Friction:* JavaScript numbers cannot represent 256-bit prime scalar field elements ($r = 21888242871839275222246405745257275088548364400416034343698204186575808495617$). When integrating Semaphore proofs, malformed hex or values $\ge r$ can cause silent upstream failures.
+   - *Mitigation:* We authored an explicit `isValidFieldElement` validation utility with BigInt modulus boundary checks on the server before transmitting payloads.
+2. **Action Digest Formatting:**
+   - *Friction:* Nuances between raw UTF-8 action strings and 32-byte keccak256 hash digests when binding complex sub-vault identifiers (`campaignId`, `subVaultId`, `deliveryManifestCid`).
+   - *Recommendation for World:* Expand `@worldcoin/idkit-core` documentation to provide explicit best practices for binding multi-variable on-chain tuples into World ID actions.
+3. **Graceful Offline Fallbacks in CI/Testing:**
+   - *Friction:* Running headless unit tests in CI environments without external internet access requires mock fetch wrappers to avoid network timeouts.
+   - *Recommendation for World:* Distribute an official `@worldcoin/idkit-mock` testing harness for deterministic local CI/CD pipelines.
+
+### 3. Minimum Sufficient Assurance Rationale
+- **Validator Quorum (Biometric / Orb Level):** Disbursing thousands of USDC in donor capital requires the highest tier of Sybil resistance. Device-level proofs are strictly rejected for validator quorum votes to eliminate automated bot collusion.
+- **Recipient Delivery Receipts (Device Level Permitted in Crisis):** On-the-ground beneficiaries in disaster zones may lack immediate access to biometric Orb centers; hence device-level identity receipts provide bounded evidence to the human review panel without directly releasing funds.
