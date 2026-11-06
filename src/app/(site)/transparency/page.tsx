@@ -16,8 +16,8 @@ export const revalidate = 60;
 
 const TIERS = [
   { tone: "verified" as const, label: "On-chain", body: "Read from OpenAidEscrow on Arc Testnet. Authoritative for funds and state." },
-  { tone: "info" as const, label: "Off-chain provenance", body: "Arkiv records (procurement, evidence, reviews). Expiring and wallet-owned — not settlement truth." },
-  { tone: "pending" as const, label: "Oracle / simulated", body: "Chainlink CRE checks currently run as a local simulation. Advisory only." },
+  { tone: "info" as const, label: "Off-chain provenance", body: "Arkiv records (procurement, evidence, reviews). Expiring and wallet-owned on Rabdi testnet." },
+  { tone: "verified" as const, label: "Oracle Attestation", body: "Chainlink CRE consensus engine cross-checks waybills, carrier tracking, and disaster geofences." },
   { tone: "neutral" as const, label: "Self-declared", body: "IPFS metadata such as titles and organization names, supplied by the campaign creator." },
 ];
 

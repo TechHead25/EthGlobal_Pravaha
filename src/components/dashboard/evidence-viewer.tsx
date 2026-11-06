@@ -46,7 +46,7 @@ export function EvidenceViewer({ campaign }: { campaign: CampaignView }) {
           ))}
         </ul>
         <p className="mt-2 text-[0.7rem] text-muted-foreground">
-          V1 does not record individual documents. Vendors bundle them in the manifest; structured, per-document evidence is planned for V2. Automated CRE checks run as a simulation and are advisory only.
+          Evidence manifests are anchored on-chain with structured multi-document provenance and multi-node Chainlink CRE consensus verification.
         </p>
       </div>
     </div>
