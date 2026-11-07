@@ -5,8 +5,12 @@
 [![Solidity: ^0.8.24](https://img.shields.io/badge/Solidity-^0.8.24-blue.svg)](https://soliditylang.org/)
 [![Hardhat](https://img.shields.io/badge/Built%20with-Hardhat-yellowgreen.svg)](https://hardhat.org/)
 [![Next.js](https://img.shields.io/badge/Frontend-Next.js%2014-black.svg)](https://nextjs.org/)
+[![Live DApp](https://img.shields.io/badge/Live%20DApp-pravahaprotocol.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://pravahaprotocol.vercel.app/)
 
 > **A decentralized charitable procurement and staged settlement protocol separating custody, procurement, verification, and settlement to eliminate single points of trust in humanitarian aid.**
+>
+> 🌐 **Live DApp:** [https://pravahaprotocol.vercel.app](https://pravahaprotocol.vercel.app/)<br/>
+> ⚡ **Arc Testnet Escrow:** [`0xe38151283e55077F621988679f2Cc524b785d236`](https://testnet.arcscan.app/address/0xe38151283e55077F621988679f2Cc524b785d236)
 
 > [!IMPORTANT]
 > **ETHGlobal Mumbai Judges & Partner Track Reviewers:**  

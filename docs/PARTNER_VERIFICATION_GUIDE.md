@@ -1,7 +1,8 @@
 # OpenAid Protocol — Partner Track Verification & Judging Guide
 
 > **ETHGlobal Mumbai Hackathon Partner Track Audit & Verification Manual**  
-> This document provides partner track judges with an exhaustive, step-by-step verification guide for all four protocol integrations: **Arc (Circle Layer 1)**, **World (World ID & IDKit)**, **Arkiv (Rabdi Testnet)**, and **Chainlink CRE (Consensus Runtime Environment)**.
+> This document provides partner track judges with an exhaustive, step-by-step verification guide for all four protocol integrations: **Arc (Circle Layer 1)**, **World (World ID & IDKit)**, **Arkiv (Rabdi Testnet)**, and **Chainlink CRE (Consensus Runtime Environment)**.<br/>
+> 🌐 **Live Production Application:** [https://pravahaprotocol.vercel.app](https://pravahaprotocol.vercel.app/)
 
 ---
 

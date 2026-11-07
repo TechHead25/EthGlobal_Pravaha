@@ -4,6 +4,10 @@
 
 This document provides instructions for configuring **OpenAid Protocol** on **Vercel** (Production and Preview deployments) to communicate with the **Arc Testnet** and verify on-chain contracts.
 
+### Live Production Deployment
+- **Live URL:** [https://pravahaprotocol.vercel.app](https://pravahaprotocol.vercel.app/)
+- **Deployment Status:** Active & Connected to Arc Testnet (Chain ID `5042002`)
+
 ---
 
 ## 2. Vercel Environment Variables Configuration
