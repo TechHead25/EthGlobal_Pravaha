@@ -260,6 +260,7 @@ export class WorldIdVerifier {
         headers: {
           "Content-Type": "application/json",
           "User-Agent": "OpenAidProtocol/1.0",
+          ...(process.env.WORLD_ID_SIGNER_KEY || process.env.WORLD_ID_API_KEY ? { Authorization: `Bearer ${process.env.WORLD_ID_SIGNER_KEY || process.env.WORLD_ID_API_KEY}` } : {}),
         },
         body: JSON.stringify({
           merkle_root: payload.merkle_root,
