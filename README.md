@@ -25,6 +25,19 @@ Traditional humanitarian and charitable aid systems suffer from severe opacity, 
 
 ---
 
+## 🏆 Partner Bounties & Hackathon Judge Quick Guide
+
+> **For ETHGlobal Mumbai Partners & Evaluators:** Direct pointers to specific required folders, live testnet deployments, rubrics, and feedback files. See full details in [`docs/PARTNERS_VERIFICATION_GUIDE.md`](./docs/PARTNERS_VERIFICATION_GUIDE.md).
+
+| Partner Track | Target Evaluation Folder / Link | Key Deliverables & Rubric Fulfillment | Automated Test Command |
+| :--- | :--- | :--- | :--- |
+| **Arkiv Network**<br>*($15k Track)* | **[`/arkiv/`](./arkiv/)**<br>and [`docs/ARKIV_INTEGRATION_GUIDE.md`](./docs/ARKIV_INTEGRATION_GUIDE.md) | • **Developer Feedback (25%):** [`arkiv/friction.md`](./arkiv/friction.md)<br>• **Why Arkiv vs Postgres (25%):** [`arkiv/why-arkiv.md`](./arkiv/why-arkiv.md)<br>• **Ecosystem Reach (25%):** [`arkiv/reach.md`](./arkiv/reach.md)<br>• **Entity Architecture:** [`arkiv/how-you-use-arkiv.md`](./arkiv/how-you-use-arkiv.md)<br>• **Rabdi Testnet Schemas:** `openaid.v1.*` (requests, bids, evidence, reviews) | `npm run test:arkiv` *(21 tests pass)* |
+| **Arc (Circle)**<br>*($15k Track)* | **[`contracts/core/OpenAidEscrow.sol`](./contracts/core/OpenAidEscrow.sol)**<br>and [`docs/ARC_SECURITY_AUDIT.md`](./docs/ARC_SECURITY_AUDIT.md) | • **Deployed Contract:** [`0xe38151283e55077F621988679f2Cc524b785d236`](https://testnet.arcscan.app/address/0xe38151283e55077F621988679f2Cc524b785d236) (Chain ID `5042002`)<br>• **Official Arc USDC:** [`0x3600000000000000000000000000000000000000`](https://testnet.arcscan.app/address/0x3600000000000000000000000000000000000000)<br>• **Deployment Tx:** Block #70917303 ([`0xd4748a...`](https://testnet.arcscan.app/tx/0xd4748a53c1eedce5bc86293d3d5a570764fae0996d0eb2b906c0ea13d54e7b21))<br>• **Flattened Contract:** [`deployments/OpenAidEscrow_Flattened.sol`](./deployments/OpenAidEscrow_Flattened.sol) | `npm run test:arc`<br>`npm run test:contracts` |
+| **Chainlink CRE**<br>*($5k Track)* | **[`/chainlink-cre/`](./chainlink-cre/)**<br>and [`docs/CHAINLINK_CRE_INTEGRATION_GUIDE.md`](./docs/CHAINLINK_CRE_INTEGRATION_GUIDE.md) | • **CRE Workflow SDK:** [`chainlink-cre/workflow.ts`](./chainlink-cre/workflow.ts) + [`workflow.yaml`](./chainlink-cre/workflow.yaml)<br>• **Multi-Node DON Simulator:** [`chainlink-cre/simulate.ts`](./chainlink-cre/simulate.ts) (2/3 BFT consensus)<br>• **Carrier & Spatial Geofence:** Haversine geofence + carrier waybill checks | `npm run test:cre` *(4 tests pass)* |
+| **World ID**<br>*($12.5k Track)* | **[`src/lib/worldid/`](./src/lib/worldid/)**<br>and [`docs/WORLD_ID_INTEGRATION_GUIDE.md`](./docs/WORLD_ID_INTEGRATION_GUIDE.md) | • **Anti-Sybil Validator Council:** World IDKit v1.3 ZK verification<br>• **Nullifier Uniqueness:** Double-voting defense preserving reviewer privacy | `npm run test:worldid` *(5 tests pass)* |
+
+---
+
 ## 2. Core Protocol Workflow
 
 ```
@@ -88,6 +101,22 @@ Traditional humanitarian and charitable aid systems suffer from severe opacity, 
 ---
 
 ## 5. Repository Documentation Index
+
+All technical, security, partner integration, and operational documentation is indexed below:
+
+### 🏆 Partner Bounties & Integration Guides
+- [`docs/PARTNERS_VERIFICATION_GUIDE.md`](./docs/PARTNERS_VERIFICATION_GUIDE.md) — Master Partner Verification Guide for hackathon judges (Arkiv, Arc, Chainlink CRE, World ID).
+- [`arkiv/`](./arkiv/) — Arkiv Developer Subfolder:
+  - [`arkiv/friction.md`](./arkiv/friction.md) — Actionable feedback on developer friction, CI mocking, and SDK improvements (25% judging weight).
+  - [`arkiv/why-arkiv.md`](./arkiv/why-arkiv.md) — Architectural rationale: Why Arkiv over PostgreSQL / Web2 DBs (25% judging weight).
+  - [`arkiv/reach.md`](./arkiv/reach.md) — Target audience, ecosystem utility, and DePIN/public goods reach (25% judging weight).
+  - [`arkiv/how-you-use-arkiv.md`](./arkiv/how-you-use-arkiv.md) — Entity schemas (`openaid.v1.*`), query filters, and client integration.
+- [`docs/ARKIV_INTEGRATION_GUIDE.md`](./docs/ARKIV_INTEGRATION_GUIDE.md) — Full technical integration guide for Arkiv Network on Rabdi Testnet.
+- [`docs/ARC_SECURITY_AUDIT.md`](./docs/ARC_SECURITY_AUDIT.md) — Comprehensive security audit, live deployment verification, and USDC accounting on Arc Testnet.
+- [`chainlink-cre/README.md`](./chainlink-cre/README.md) & [`docs/CHAINLINK_CRE_INTEGRATION_GUIDE.md`](./docs/CHAINLINK_CRE_INTEGRATION_GUIDE.md) — Decentralized delivery manifest and spatial geofencing oracle.
+- [`docs/WORLD_ID_INTEGRATION_GUIDE.md`](./docs/WORLD_ID_INTEGRATION_GUIDE.md) — Sybil-resistant human validator council integration using World IDKit v1.3.
+
+### 📐 Protocol Design & Security Specifications
 
 All technical, security, and operational documentation is maintained under [`docs/`](./docs/):
 
