@@ -18,6 +18,75 @@ OpenAid Protocol eliminates single points of trust in humanitarian aid by decoup
 
 ---
 
+### Protocol Cross-Partner Architecture & Trust Topology
+
+```mermaid
+graph TD
+    subgraph Client["🖥️ Multi-Role Presentation Layer (Next.js 14)"]
+        D["Donor Web3 Portal"]
+        N["NGO Tender Portal"]
+        V["Vendor Bidding & Shipping"]
+        B["Disaster Relief Beneficiary"]
+        VAL_UI["Validator Quorum Portal"]
+    end
+
+    subgraph Arc["⚡ Settlement Layer: Arc Testnet (Chain ID 5042002)"]
+        Escrow["OpenAidEscrow.sol (0xe381...d236)"]
+        USDC["Circle USDC (0x3600...0000)"]
+        SubVault["Isolated Sub-Vault Accounting"]
+        Auction["Commit-Reveal Auction Logic"]
+    end
+
+    subgraph Arkiv["🗄️ Decentralized DB: Arkiv Rabdi Testnet (Chain ID 7794095)"]
+        Req["openaid.v1.requests (Tenders)"]
+        Bids["openaid.v1.bids (Sealed Bids)"]
+        Evid["openaid.v1.evidence (CIDs & Waybills)"]
+        Rev["openaid.v1.reviews (Validator Logs)"]
+    end
+
+    subgraph WorldID["🛡️ Identity & Anti-Sybil: World IDKit v1.3"]
+        Sampler["Efraimidis-Spirakis 5-of-14 Selection"]
+        Receipt["Binary Recipient Receipt (BN254 ZK Proof)"]
+        Replay["Anti-Replay Nullifier Shield (HTTP 409)"]
+    end
+
+    subgraph Chainlink["🔗 Verifiable Oracle: Chainlink CRE (4-Node DON)"]
+        N1["Node 1: Carrier Logistics API"]
+        N2["Node 2: Spatial Geofencing Polygon"]
+        N3["Node 3: Gemini AI Invoice OCR Match"]
+        N4["Node 4: World ID Proof of Receipt"]
+        BFT["3-of-4 BFT Consensus Aggregator"]
+    end
+
+    %% Client to Layers
+    D -->|"Deposit USDC"| Escrow
+    Escrow -->|"Locks Custody"| USDC
+    Escrow -->|"Partitions Budget"| SubVault
+    N -->|"Publish Tender RFP"| Req
+    V -->|"Submit Bid Hash"| Auction
+    V -->|"Mirror Bid Attributes"| Bids
+    V -->|"Upload Shipping Manifest"| Evid
+    B -->|"Generate ZK Delivery Proof"| Receipt
+    Receipt -->|"Verify Nullifier"| Replay
+
+    %% Oracle Verification
+    Evid -->|"Trigger Delivery Audit"| N1 & N2 & N3
+    Replay -->|"Proof of Handover"| N4
+    N1 & N2 & N3 & N4 -->|"Vote"| BFT
+    BFT -->|"Advisory Attestation Digest"| VAL_UI
+
+    %% Validator Quorum
+    Sampler -->|"Cryptographic Panel Draw"| VAL_UI
+    VAL_UI -->|"3-of-5 Quorum CastVote()"| Escrow
+
+    %% Settlements
+    Escrow -->|"Stage 1: 70% Payout"| V
+    Escrow -.->|"Stage 2: 30% Payout (Post 72h)"| V
+    Escrow -.->|"Timeout/Dispute: 100% Proportional Refund"| D
+```
+
+---
+
 ## 30-Second Quickstart for Judges
 
 To run all **99 automated partner integration tests** and verify all four partner tracks in a single command:
@@ -54,6 +123,44 @@ Five cardinal protocol invariants are mathematically and programmatically enforc
 3. **Sub-Vault Isolation:** Multi-item campaigns (e.g. Food \$50k, Blankets \$30k) operate as isolated sub-vaults. A delivery failure or dispute in one sub-vault never drains or locks funds in another.
 4. **15% Backup Vendor Spread Cap:** If the winning vendor defaults or is penalized, the backup vendor can only be awarded if their revealed bid $\le 1.15 \times \text{winning\_bid}$. The defaulted vendor's slashed bond offsets any price difference.
 5. **No Sweep / Emergency Withdraw Backdoors:** Zero `emergencyWithdraw()`, owner rescue, or admin draining functions exist in the codebase.
+
+#### Arc Testnet Staged Settlement & Sub-Vault Financial Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Donor as Donor
+    actor NGO as NGO Creator
+    actor Vendor as Winning Vendor
+    participant Escrow as OpenAidEscrow.sol (Arc)
+    participant USDC as Circle USDC (Arc L1)
+    actor Validators as 3-of-5 Validator Quorum
+
+    NGO->>Escrow: createCampaign(budgetCeiling, subVaults, deadlines)
+    Donor->>USDC: approve(Escrow, 10,000 USDC)
+    Donor->>Escrow: depositFunds(campaignId, subVaultId, 10,000 USDC)
+    Escrow->>USDC: safeTransferFrom(Donor, Escrow, 10,000 USDC)
+    Note over Escrow,USDC: NGO balance is strictly 0. Funds locked in sub-vault.
+
+    Vendor->>Escrow: submitCommitment(commitHash) & revealBid(bidAmount, salt)
+    Note over Escrow: Lowest valid revealed bid locked ($8,500 USDC)
+
+    Vendor->>Escrow: submitDeliveryEvidence(campaignId, manifestCid)
+    Validators->>Escrow: castVote(campaignId, APPROVE) [Quorum 3/5]
+
+    alt Quorum Reached (Happy Path)
+        Escrow->>USDC: safeTransfer(Vendor, 70% Tranche = 5,950 USDC)
+        Note over Escrow: 72-Hour Timelock Challenge Window Opens
+        alt No Dispute Upheld
+            Escrow->>USDC: safeTransfer(Vendor, 30% Tranche = 2,550 USDC)
+            Note over Escrow: Surplus ($1,500 USDC) credited to Donor refunds
+        else Dispute Upheld
+            Escrow-->>Donor: 30% Tranche + Surplus refunded proportionally
+        end
+    else Quorum Fails / Timeout (Refund Path)
+        Escrow-->>Donor: 100% Capital Refunded via Pull-over-Push
+    end
+```
 
 ### 3. Live Deployed On-Chain Evidence & Arc Studio Project
 - **Official Arc Studio Shareable Project URL:** [`https://studio.arc.io/share/openaid-protocol-pravaha-rtjnrr8cg5`](https://studio.arc.io/share/openaid-protocol-pravaha-rtjnrr8cg5) *(Bounty qualification requirement)*
@@ -185,6 +292,45 @@ OpenAid implements a simulated **4-Node Specialized Decentralized Oracle Network
 - **Node 2 (Spatial Geofencing):** Cross-checks latitude/longitude delivery coordinates against the campaign's disaster relief polygon boundary.
 - **Node 3 (AI Spec Match Handshake):** Dispatches delivery invoices to the Google Gemini API (`/api/verify-invoice`) for structured optical character extraction and RFP specification matching.
 - **Node 4 (Last-Mile Human Proof):** Checks for the presence of a verified World ID recipient receipt and valid beneficiary nullifier.
+
+#### Chainlink CRE 4-Node DON Consensus Architecture
+
+```mermaid
+flowchart TD
+    subgraph Trigger["1. Trigger & Event Layer"]
+        EvmLog["EVM Event: EvidenceSubmitted(campaignId, manifestCid)"]
+        Webhook["HTTP Webhook: POST /api/verify-delivery"]
+    end
+
+    subgraph DON["2. Chainlink CRE Multi-Node DON (Consensus Layer)"]
+        subgraph Nodes["Parallel Specialized Verification Nodes"]
+            N1["Node 1: Carrier API Gateway<br/>(Verifies DHL/Freight Status == DELIVERED)"]
+            N2["Node 2: Spatial Geofencing<br/>(Haversine Distance <= Relief Perimeter)"]
+            N3["Node 3: Google Gemini AI<br/>(Optical OCR Spec & Quantity Matching)"]
+            N4["Node 4: World ID Verification<br/>(Beneficiary Semaphore ZK Proof & Nullifier)"]
+        end
+        BFT{"3-of-4 Byzantine Fault<br/>Tolerance (BFT) Threshold"}
+    end
+
+    subgraph Consensus["3. Consensus Outcome & Attestation"]
+        Success["✅ Consensus Attestation Generated<br/>(cre_attest_digest)"]
+        Reject["❌ BFT Consensus Failed<br/>(Emits REJECT with discrepancy report)"]
+    end
+
+    subgraph Action["4. Action & Settlement Boundary"]
+        Portal["Validator Council Dashboard<br/>(Surfaces Advisory Signals)"]
+        Quorum["Human Validators (3-of-5 Quorum)<br/>Cast On-Chain Signatures"]
+        Escrow["OpenAidEscrow.sol (Arc Testnet)<br/>Executes Staged Settlement"]
+    end
+
+    Trigger --> Nodes
+    N1 & N2 & N3 & N4 --> BFT
+    BFT -->|">= 3 Nodes Agree"| Success
+    BFT -->|"< 3 Nodes Agree"| Reject
+    Success --> Portal
+    Portal --> Quorum
+    Quorum --> Escrow
+```
 
 #### Byzantine Fault Tolerance (BFT) Invariant:
 - Requires at least **3-of-4 BFT consensus** across specialized DON nodes to recommend `APPROVE_FOR_HUMAN_REVIEW` to the human validator panel.

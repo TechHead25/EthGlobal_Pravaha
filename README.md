@@ -44,7 +44,76 @@ Traditional humanitarian and charitable aid systems suffer from severe opacity, 
 
 ---
 
-## 2. Core Protocol Workflow
+## 2. Core Protocol Architecture & Workflow
+
+### 2.1. System Architecture & Partner Trust Boundaries
+
+```mermaid
+graph TD
+    subgraph Client["🖥️ Multi-Role Presentation Layer (Next.js 14)"]
+        D["Donor Web3 Portal"]
+        N["NGO Tender Portal"]
+        V["Vendor Bidding & Shipping"]
+        B["Disaster Relief Beneficiary"]
+        VAL_UI["Validator Quorum Portal"]
+    end
+
+    subgraph Arc["⚡ Settlement Layer: Arc Testnet (Chain ID 5042002)"]
+        Escrow["OpenAidEscrow.sol (0xe381...d236)"]
+        USDC["Circle USDC (0x3600...0000)"]
+        SubVault["Isolated Sub-Vault Accounting"]
+        Auction["Commit-Reveal Auction Logic"]
+    end
+
+    subgraph Arkiv["🗄️ Decentralized DB: Arkiv Rabdi Testnet (Chain ID 7794095)"]
+        Req["openaid.v1.requests (Tenders)"]
+        Bids["openaid.v1.bids (Sealed Bids)"]
+        Evid["openaid.v1.evidence (CIDs & Waybills)"]
+        Rev["openaid.v1.reviews (Validator Logs)"]
+    end
+
+    subgraph WorldID["🛡️ Identity & Anti-Sybil: World IDKit v1.3"]
+        Sampler["Efraimidis-Spirakis 5-of-14 Selection"]
+        Receipt["Binary Recipient Receipt (BN254 ZK Proof)"]
+        Replay["Anti-Replay Nullifier Shield (HTTP 409)"]
+    end
+
+    subgraph Chainlink["🔗 Verifiable Oracle: Chainlink CRE (4-Node DON)"]
+        N1["Node 1: Carrier Logistics API"]
+        N2["Node 2: Spatial Geofencing Polygon"]
+        N3["Node 3: Gemini AI Invoice OCR Match"]
+        N4["Node 4: World ID Proof of Receipt"]
+        BFT["3-of-4 BFT Consensus Aggregator"]
+    end
+
+    %% Client to Layers
+    D -->|"Deposit USDC"| Escrow
+    Escrow -->|"Locks Custody"| USDC
+    Escrow -->|"Partitions Budget"| SubVault
+    N -->|"Publish Tender RFP"| Req
+    V -->|"Submit Bid Hash"| Auction
+    V -->|"Mirror Bid Attributes"| Bids
+    V -->|"Upload Shipping Manifest"| Evid
+    B -->|"Generate ZK Delivery Proof"| Receipt
+    Receipt -->|"Verify Nullifier"| Replay
+
+    %% Oracle Verification
+    Evid -->|"Trigger Delivery Audit"| N1 & N2 & N3
+    Replay -->|"Proof of Handover"| N4
+    N1 & N2 & N3 & N4 -->|"Vote"| BFT
+    BFT -->|"Advisory Attestation Digest"| VAL_UI
+
+    %% Validator Quorum
+    Sampler -->|"Cryptographic Panel Draw"| VAL_UI
+    VAL_UI -->|"3-of-5 Quorum CastVote()"| Escrow
+
+    %% Settlements
+    Escrow -->|"Stage 1: 70% Payout"| V
+    Escrow -.->|"Stage 2: 30% Payout (Post 72h)"| V
+    Escrow -.->|"Timeout/Dispute: 100% Proportional Refund"| D
+```
+
+### 2.2. Protocol State Machine
 
 ```
 [ Donors ] -- (1. Fund Campaign) --> [ Escrow Vault ]

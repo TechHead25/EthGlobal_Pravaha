@@ -63,7 +63,48 @@ To ensure transparent verification and prevent conflation between simulations an
 
 ---
 
-## 4. Trigger Model & Workflow Lifecycle
+## 4. CRE Workflow Diagram & Trigger Model
+
+### 4.1. Workflow Architecture & DON Consensus Diagram
+
+```mermaid
+flowchart TD
+    subgraph Trigger["1. Trigger & Event Layer"]
+        EvmLog["EVM Event: EvidenceSubmitted(campaignId, manifestCid)"]
+        Webhook["HTTP Webhook: POST /api/verify-delivery"]
+    end
+
+    subgraph DON["2. Chainlink CRE Multi-Node DON (Consensus Layer)"]
+        subgraph Nodes["Parallel Specialized Verification Nodes"]
+            N1["Node 1: Carrier API Gateway<br/>(Verifies DHL/Freight Status == DELIVERED)"]
+            N2["Node 2: Spatial Geofencing<br/>(Haversine Distance <= Relief Perimeter)"]
+            N3["Node 3: Google Gemini AI<br/>(Optical OCR Spec & Quantity Matching)"]
+            N4["Node 4: World ID Verification<br/>(Beneficiary Semaphore ZK Proof & Nullifier)"]
+        end
+        BFT{"3-of-4 Byzantine Fault<br/>Tolerance (BFT) Threshold"}
+    end
+
+    subgraph Consensus["3. Consensus Outcome & Attestation"]
+        Success["✅ Consensus Attestation Generated<br/>(cre_attest_digest)"]
+        Reject["❌ BFT Consensus Failed<br/>(Emits REJECT with discrepancy report)"]
+    end
+
+    subgraph Action["4. Action & Settlement Boundary"]
+        Portal["Validator Council Dashboard<br/>(Surfaces Advisory Signals)"]
+        Quorum["Human Validators (3-of-5 Quorum)<br/>Cast On-Chain Signatures"]
+        Escrow["OpenAidEscrow.sol (Arc Testnet)<br/>Executes Staged Settlement"]
+    end
+
+    Trigger --> Nodes
+    N1 & N2 & N3 & N4 --> BFT
+    BFT -->|">= 3 Nodes Agree"| Success
+    BFT -->|"< 3 Nodes Agree"| Reject
+    Success --> Portal
+    Portal --> Quorum
+    Quorum --> Escrow
+```
+
+### 4.2. Trigger Specification
 
 ### Trigger Specification
 - **Trigger Type:** `HTTP` Webhook Trigger (`POST /verify-delivery`)
